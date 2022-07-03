@@ -1,0 +1,21 @@
+#Assigning variable names and using Python to identify the data type ofeach variable:
+
+v = int(2)
+print(v)
+
+w= float(2.0)
+print(w)
+
+x = str(10j)
+print(x)
+
+y = str("2 Cool for School")
+print(y)
+
+z = str("True")
+print(z)
+
+# list named "A" containing all the values from above
+
+A = [2, 2.0, '10j', '2 Cool for School', 'True']
+A
