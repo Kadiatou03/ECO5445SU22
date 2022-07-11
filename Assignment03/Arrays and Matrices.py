@@ -80,8 +80,6 @@ print(ab)
 
 
 
-
-
 # Estimated linear demand and supply functions of pork in Canada. 
 #         Q = 286 - 20p.
 #         Q = 88 + 40p.
@@ -102,7 +100,7 @@ print(v_inverse)
 s = v_inverse * w
 print(s)
 
-# Answer: The equilibrium price is 3.3 and equilibrium quantity is 220.
+# Answer: The equilibrium price is 3.3 and the equilibrium quantity is 220.
 
 
 
