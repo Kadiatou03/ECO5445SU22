@@ -2,6 +2,10 @@ import numpy as np
 
 # Constructing array "A" with i = 3 rows and j = 4 columns: 
 
+#############################
+# Question 2    
+#############################
+
 A = np.array([[1., 2., 3., 4.], [5., 6., 7., 8.], [9., 10., 11., 12.]])
 print("A =", A)
 
@@ -13,7 +17,9 @@ print("rows")
 print("j =",j, end=' ')
 print("columns")
 
-
+#############################
+# Question 3
+#############################
 
 # From array A, extract "number 7" 
 A[1][2]
@@ -31,7 +37,9 @@ A[1], A[2]
 A[1][2], A[1][3], A[2][2], A[2][3]
 
 
-
+#############################
+# Question 4
+#############################
 
 # Create the array B = 2*A - 8. 
 B = 2*A - 8.
@@ -55,12 +63,14 @@ print("Sum third column =", sum(B [: ,2]))
 print("Sum fourth column =", sum(B [: ,3]))
 
 # The cumulative sum of row values
-np.cumsum(B, axis=1) 
+np.cumsum(B, axis=1) # Looking for a single value, so sum of them. This operation transforms current values to their cummulative sum per element (-2)
 
 # The cumulative sum of column values
-np.cumsum(B, axis=0) 
+np.cumsum(B, axis=0) # Looking for a single value, so sum of them. This operation transforms current values to their cummulative sum per element (-2)
 
-
+#############################
+# Question 5
+#############################
 
 # From array B, create new arrays containing the element-by-element: natural logarithm
 l = np.log(B)
@@ -78,7 +88,9 @@ print(sq)
 ab = np.abs(B)
 print(ab)
 
-
+#############################
+# Question 6
+#############################
 
 # Estimated linear demand and supply functions of pork in Canada. 
 #         Q = 286 - 20p.
