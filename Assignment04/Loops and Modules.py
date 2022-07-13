@@ -1,7 +1,7 @@
 import numpy as np 
 
 # Set the number of points that would be generated as numPoints and the number of points in the circle as pointsInCercle equals to zero to start
-numPoints = 10000
+numPoints = 1000000
 pointsInCircle = 0 
 
 # Use np.random.rand() function to help order data in a way what it is easier to manipulate and to organize data into array of points with coordinates (x,y)
@@ -13,14 +13,14 @@ print(p)
 for i in range(len(p)):
     x = p[i, 0]
     y = p[i, 1] 
-    print("x: ", x) 
-    print("y: ", y) 
+    #print("x: ", x) 
+    #print("y: ", y) 
     
 # Distance is found by doing the squared root of (x*x + y*y) and as unit square circle where radius = 1, therefore distance from the point to origin has to be <= 1,
 # if that is true, the point is in the circle and that increases the count of "pointsInCircle"
  
     distance = np.sqrt(x*x + y*y) 
-    print("distance: ", distance) 
+    #print("distance: ", distance) 
 
     if distance <= 1: 
      pointsInCircle += 1 
