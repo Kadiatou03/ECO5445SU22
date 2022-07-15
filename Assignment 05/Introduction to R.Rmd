@@ -1,0 +1,63 @@
+
+```{r}
+i <- 2
+print(class(i))
+
+j<- 2.0
+print(class(j))
+
+k <- "10j"
+print(class("10j"))
+
+l <- "2 Cool for School"
+print(class(l))
+  
+m <- TRUE 
+print(class(m))
+```
+
+
+```{r}
+A <- list(2, 2.0, "10j", "2 Cool for School", TRUE)
+print(A)
+
+```
+
+
+```{r}
+B <- "I like pie more than cake."
+#     01234567890123456789012345
+nchar(B)
+
+substr(B, start = 0, stop =6)
+
+substr(B, start = 7, stop = 16)
+
+substr(B, start = 17, stop = 25)
+
+substr(B, 11:15, 17:25)
+
+
+substr(B, start = 0, stop = 6) 
+substr(B, start = 11, stop = 15)
+substr(B, start = 21, stop = 25)
+
+
+```
+
+
+```{r}
+
+y <- function (x) {
+if (x%%3==0){ 
+  return("foo")
+} else if (x%%5 ==0){
+  return("bar")
+} else if (x%%3 ==0 | x%%5 ==0) {
+  return("foobar")
+} else 
+  return("Not a multiple of 3, 5, or 15")
+y
+
+35
+```
