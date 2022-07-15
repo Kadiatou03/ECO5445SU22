@@ -57,7 +57,6 @@ if (x%%3==0){
   return("foobar")
 } else 
   return("Not a multiple of 3, 5, or 15")
-y
 
-35
+
 ```
