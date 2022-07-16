@@ -1,19 +1,22 @@
+
 ```{r}
 # 2: Repeat questions 2 and 5 from Assignment 02
+
 i <- 2
 print(class(i))
 
-j<- 2.0
-print(class(j))
+p <- 2.0
+print(class(p))
 
-k <- "10j"
-print(class("10j"))
+k <- 10j
+print(class(k))
 
 l <- "2 Cool for School"
 print(class(l))
   
 m <- TRUE 
 print(class(m))
+
 ```
 
 
@@ -31,36 +34,47 @@ nchar(B)
 
 substr(B, start = 0, stop =6)
 
-substr(B, start = 7, stop = 16)
+substr(B, start = 8, stop = 15)
 
 substr(B, start = 17, stop = 25)
 
-substr(B, 11:15, 17:25)
-
-#Need review
-
-substr(B, start = 0, stop = 6) 
-substr(B, start = 11, stop = 15)
-substr(B, start = 21, stop = 25)
-
+paste(substr(B, start = 0, stop = 6), substr(B, start = 11, stop = 15),substr(B, start = 21, stop = 25))
 
 ```
 
 
 ```{r}
-#Need Review
 
-y <- function (x) {
-if (x%%3==0){ 
+# Create a function y(x) that
+# Return the string "foo"if x is multiple of 3 , 
+# return the string "bar" if x is a multiple of 5 ,
+# return the string "foobar" if x is a multiple of 15 ,
+# if x does not satisfy any of those, return the string "Not a multiple of 3, 5, or 15"
+    
+#   y(18)
+#  'foo'
+
+y <- function (x)
+
+  if (x%%3 ==0 & x%%5 ==0) {
+  return("foobar")
+} else if (x%%3==0){ 
   return("foo")
 } else if (x%%5 ==0){
   return("bar")
-} else if (x%%3 ==0 | x%%5 ==0) {
-  return("foobar")
 } else 
   return("Not a multiple of 3, 5, or 15")
 
+# Testing the function y(x)
+
+y(6)
+y(15)
+y(25)
+y(673)
+
 ```
+
+
 
 ```{r}
 # 3: Bring in the dataset "swiss" 
@@ -69,6 +83,8 @@ data("swiss")
 
 ```
 
+
+
 ```{r}
 # 4: Summary statistics of dataframe in R
  
@@ -76,20 +92,23 @@ summary(swiss)
 
 ```
 
+
 ```{r}
-#Need Review
 
 # 5: Which Province has the highest percent of males involved in agriculture as their occupation?
 
-rownames(max.col(swiss$Agriculture))
+row.names(swiss)[swiss$Agriculture == max(swiss$Agriculture)]
 
 ```
+
 
 ```{r}
 # 6: Provide the correlation values between all the variables
+
 cor(swiss)
 
 ```
+
 
 ```{r}
 # 7: Plot the relationship between fertility and education where fertility is on the y-axis and education is on the x-axis
@@ -98,8 +117,10 @@ plot(Fertility ~ Education, swiss, main="Relationship between Fertility and Educ
 
 ```
 
+
 ```{r}
 # 8: Provide a histogram of the % of individuals that were catholic
+
 hist(swiss$Catholic,main="% of Catholic individuals", xlab = "Catholic")
 
 ```
