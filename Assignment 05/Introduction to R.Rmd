@@ -1,5 +1,12 @@
+---
+title: "Assignment 05"
+output: html_document
+date: '2022-07-14'
+---
+
 
 ```{r}
+# 2: Repeat questions 2 and 5 from Assignment 02
 i <- 2
 print(class(i))
 
@@ -37,6 +44,7 @@ substr(B, start = 17, stop = 25)
 
 substr(B, 11:15, 17:25)
 
+#Need review
 
 substr(B, start = 0, stop = 6) 
 substr(B, start = 11, stop = 15)
@@ -47,6 +55,7 @@ substr(B, start = 21, stop = 25)
 
 
 ```{r}
+#Need Review
 
 y <- function (x) {
 if (x%%3==0){ 
@@ -58,5 +67,46 @@ if (x%%3==0){
 } else 
   return("Not a multiple of 3, 5, or 15")
 
+```
+
+```{r}
+# 3: Bring in the dataset "swiss" 
+
+data("swiss")
+
+```
+
+```{r}
+# 4: Summary statistics of dataframe in R
+ 
+summary(swiss)
+
+```
+
+```{r}
+#Need Review
+
+# 5: Which Province has the highest percent of males involved in agriculture as their occupation?
+
+rownames(max.col(swiss$Agriculture))
+
+```
+
+```{r}
+# 6: Provide the correlation values between all the variables
+cor(swiss)
+
+```
+
+```{r}
+# 7: Plot the relationship between fertility and education where fertility is on the y-axis and education is on the x-axis
+
+plot(Fertility ~ Education, swiss, main="Relationship between Fertility and Education")
+
+```
+
+```{r}
+# 8: Provide a histogram of the % of individuals that were catholic
+hist(swiss$Catholic,main="% of Catholic individuals", xlab = "Catholic")
 
 ```
