@@ -75,14 +75,12 @@ y(673)
 ```
 
 
-
 ```{r}
 # 3: Bring in the dataset "swiss" 
 
 data("swiss")
 
 ```
-
 
 
 ```{r}
