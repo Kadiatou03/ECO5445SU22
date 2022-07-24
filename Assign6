@@ -101,6 +101,11 @@ As is, are any of the Gauss-Markov assumptions violated? If so, which ones? How 
 library(gvlma)
 Fit_property <- lm(price ~ bed + bath + area_heated + dist_cbd + dist_lakes + pool, data = Property)
 
+par(ask = TRUE)
+par(mfrow = c(2, 2))
+plot(Fit_property)
+
+# Test of linear model assumptions
 gvmodelProperty <- gvlma(Fit_property)
 summary(gvmodelProperty)
 
@@ -115,17 +120,17 @@ Based off of your findings in the previous section, make changes to the variable
 
 ```{r}
 library(car)
-summary(powerTransform(Property$price))
+summary(powerTransform(Property$price), family = "bcPower")
 
 ```
 
 Verifying assumptions
 ```{r}
 library(gvlma)
-Fit_property <- lm(price ~ bed + bath + area_heated + dist_cbd + dist_lakes + pool, data = Property)
+Fit_property1 <- lm(price ~ bed + bath + area_heated + dist_cbd, data = Property)
 
-gvmodelProperty <- gvlma(Fit_property)
-summary(gvmodelProperty)
+gvmodelProperty1 <- gvlma(Fit_property1)
+summary(gvmodelProperty1)
 ```
 
 
