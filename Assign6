@@ -1,0 +1,155 @@
+---
+title: "Assignment 6"
+author: "Your Name Here"
+date: '2022-07-24'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+install.packages('readr')
+install.packages('dplyr')
+
+library(readr)
+library(dplyr)
+library(car)
+
+```
+
+We are going to look at the property prices for Orange County. From there we are going to try and predict the sales price by linear regression.
+
+# Importing Data 
+
+Bring in the data and make sure the data types are correct. If not, make the proper changes. The file is located within this project. *data/prop_prices_reduced.csv*
+
+```{r}
+
+Property <- read.csv("data/prop_prices_reduced.csv")
+
+#Renaming column sale_def with an intuitive name: price
+
+library(dplyr)
+Property <- rename(Property, price = sale_def)
+
+```
+
+
+# Plotting
+
+Plot histograms for all variables. Additionally, add scatterplots for the relationships between all quantitative variables.
+
+```{r}
+# Histograms for all variables
+
+attach(Property)
+par(mfrow = c(2, 4))
+hist(price)
+hist(bed)
+hist(bath)
+hist(area_heated)
+hist(area)
+hist(dist_cbd)
+hist(dist_lakes)
+hist(pool)
+
+# Scatterplots for the relationships between all quantitative variables
+
+scatterplotMatrix(Property, main = "Scatterplots")
+# or
+pairs(~price + bed + bath + area_heated + dist_cbd + dist_lakes + pool, data = Property, main = "Scatterplots")
+```
+
+# Summary Statistics
+
+Provide basic summary statistics for univariate analysis. Also, provide the correlation between all the quantitative variables.
+
+```{r}
+# Basis summary statistics
+summary(Property)
+
+# Correlation between all the quantitative variables
+cor(Property)
+```
+
+# Regression Analysis
+
+Run a regression with all the variables included. Print results of the regression.
+
+```{r}
+Fit_property <- lm(price ~ bed + bath + area_heated + dist_cbd + dist_lakes + pool, data = Property)
+
+summary(Fit_property)
+
+```
+
+Which of the variables tested significant at the 95% level? Looking at the results and answering outside of the chunk is sufficient.
+
+The variables tested significant at the 95% level are bed, bath, area_heated and dist_cbd 
+
+## Evaluating the model
+
+As is, are any of the Gauss-Markov assumptions violated? If so, which ones? How can you fix the issues?
+
+```{r}
+library(gvlma)
+Fit_property <- lm(price ~ bed + bath + area_heated + dist_cbd + dist_lakes + pool, data = Property)
+
+gvmodelProperty <- gvlma(Fit_property)
+summary(gvmodelProperty)
+
+# All the Gauss-Markov assumptions (Global Stat, Skewness, Kurtosis, Link Function, Heteroscedasticity) are violated
+# For Global Stat,
+```
+
+
+## New Model
+
+Based off of your findings in the previous section, make changes to the variables, the functional form, etc.
+
+```{r}
+library(car)
+summary(powerTransform(Property$price))
+
+```
+
+Verifying assumptions
+```{r}
+library(gvlma)
+Fit_property <- lm(price ~ bed + bath + area_heated + dist_cbd + dist_lakes + pool, data = Property)
+
+gvmodelProperty <- gvlma(Fit_property)
+summary(gvmodelProperty)
+```
+
+
+# Prediction
+
+Based on the following inputs, predict the deflated sales price:
+
+- 2 bed
+- 2 bath
+- area_heated = 1223
+- area = 9750
+- dist_cbd = 19368
+- dist_lakes = 490
+- no pool
+
+```{r}
+newproperty <- data.frame("bed"= 2,
+                       "bath" = 2,
+                       "area_heated" = 1223,
+                       "area" = 9750,
+                       "dist_cbd" = 19368, 
+                       "dist_lakes" = 490,
+                       "pool" = 0)
+
+predict(Fit_property, newproperty)
+```
+The deflated sales price $
