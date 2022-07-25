@@ -1,0 +1,259 @@
+---
+title: "Assignment 6"
+author: "Your Name Here"
+date: '2022-07-24'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+install.packages('readr')
+
+library(readr)
+library(dplyr)
+library(car)
+library(gvlma)
+```
+
+We are going to look at the property prices for Orange County. From there we are going to try and predict the sales price by linear regression.
+
+# Importing Data 
+
+Bring in the data and make sure the data types are correct. If not, make the proper changes. The file is located within this project. *data/prop_prices_reduced.csv*
+
+```{r}
+
+Property <- read.csv("data/prop_prices_reduced.csv")
+
+#Renaming column sale_def with an intuitive name: price
+
+library(dplyr)
+Property <- rename(Property, price = sale_def)
+
+```
+
+
+# Plotting
+
+Plot histograms for all variables. Additionally, add scatterplots for the relationships between all quantitative variables.
+
+```{r}
+# Histograms for all variables
+
+attach(Property)
+par(mfrow = c(2, 4))
+hist(price)
+hist(bed)
+hist(bath)
+hist(area_heated)
+hist(area)
+hist(dist_cbd)
+hist(dist_lakes)
+hist(pool)
+
+# Scatterplots for the relationships between all quantitative variables
+library(dplyr)
+PropertyQuant <- select(Property, price, bed, bath, area_heated, area, dist_cbd, dist_lakes)
+
+library(car)
+scatterplotMatrix(PropertyQuant, main = "Quantitative Variables Scatterplots")
+# or
+pairs(~price + bed + bath + area_heated + dist_cbd + dist_lakes, data = Property, main = "Quantitative Variables Scatterplots")
+```
+
+# Summary Statistics
+
+Provide basic summary statistics for univariate analysis. Also, provide the correlation between all the quantitative variables.
+
+```{r}
+# Factor in  data: Pool
+
+Property$pool <- factor(Property$pool)
+
+# Basis summary statistics
+summary(Property)
+
+# Correlation between all the quantitative variables
+cor(PropertyQuant)
+```
+
+# Regression Analysis
+
+Run a regression with all the variables included. Print results of the regression.
+
+```{r}
+Fit_property <- lm(price ~ bed + bath + area_heated + area + dist_cbd + dist_lakes + pool, data = Property)
+
+summary(Fit_property)
+
+```
+
+Which of the variables tested significant at the 95% level? Looking at the results and answering outside of the chunk is sufficient.
+
+The variables tested significant at the 95% level are bed, bath, area_heated, area and dist_cbd 
+
+## Evaluating the model
+
+As is, are any of the Gauss-Markov assumptions violated? If so, which ones? How can you fix the issues?
+
+```{r}
+
+library(gvlma)
+Fit_property <- lm(price ~ bed + bath + area + area_heated + dist_cbd + dist_lakes + pool, data = Property)
+
+
+par(mfrow = c(2, 2))
+plot(Fit_property)
+
+# Test of linear model assumptions
+gvmodelProperty <- gvlma(Fit_property)
+summary(gvmodelProperty)
+
+# All the Gauss-Markov assumptions (Global Stat, Skewness, Kurtosis, Link Function, Heteroscedasticity) are violated. To fix the issues, we will use the Box-Cox transformation or log() transformation to the dependent variable(price) and some of the independent variables to remove Heteroscedasticity. We will also remove some outlier to improve Skewness and Kurtosis. By doing all these manipulations, we hope that all the assumptions will be corrected.
+
+```
+
+## New Model
+
+Based off of your findings in the previous section, make changes to the variables, the functional form, etc.
+
+```{r}
+summary(powerTransform(Property$price))
+
+# The transformation parameter is -0.33 which is close to 0. We will do a log transformation of the price
+```
+
+```{r}
+# log transformation of price
+library(car)
+Property$logprice =log(Property$price)
+
+
+#Verifying assumptions
+
+library(gvlma)
+
+Fit_property1 <- lm(logprice ~ bed + bath + area + area_heated + dist_cbd + dist_lakes + pool, data = Property)
+
+gvmodelProperty1 <- gvlma(Fit_property1)
+summary(gvmodelProperty1)
+
+par(mfrow = c(2, 2))
+plot(Fit_property1)
+
+# Heteroscedasticity is now acceptable
+```
+
+
+```{r}
+# Let's do the log transformation of some other variables with skewed distributions to improve them
+Property$logarea= log(Property$area)
+Property$logbath= log(Property$bath)
+Property$logarea_heated = log(Property$area_heated)
+Property$logDist_lakes = log(Property$dist_lakes)
+ 
+# after several trials, I decided to not include the log of area
+
+library(gvlma)
+Fit_property2 <- lm(logprice ~ bed + logbath + area + logarea_heated + dist_cbd + logDist_lakes + pool, data = Property)
+
+gvmodelProperty2 <- gvlma(Fit_property2)
+summary(gvmodelProperty2)
+
+par(mfrow = c(2, 2))
+plot(Fit_property2)
+
+# Now, Skewness assumption is acceptable, R-squared has slightly improved and all the level of significance are the same 
+```
+
+
+```{r}
+# Let's remove the outliers visible from the residuals vs fitted plot of Fit_property2 which are the same ones found by the outlier test. This will reduce the disproportionate effect outliers can have on the data and hopefully correct the remaining assumptions
+
+library(car)
+outlierTest(Fit_property2)
+
+# Removing outliers
+modelproperty <- Property[-c(329, 37), ]
+```
+
+
+
+```{r}
+#Testing the new model1
+
+library(gvlma)
+Fit_property3 <- lm(logprice ~ bed + logbath + area + logarea_heated + dist_cbd + logDist_lakes + pool, data = modelproperty)
+
+gvmodelProperty3 <- gvlma(Fit_property3)
+summary(gvmodelProperty3)
+
+par(mfrow = c(2, 2))
+plot(Fit_property3)
+
+# The remaining assumptions have not changed, the new model 1 is not effective
+```
+
+
+```{r}
+#Testing the new model2
+library(car)
+boxTidwell(price ~ bed + bath + area + area_heated + dist_cbd + dist_lakes, data = modelproperty)
+```
+
+
+```{r}
+bed1 <- modelproperty$bed^5.28537
+bath1 <- modelproperty$bath^5.27883
+areaheated1 <- modelproperty$area_heated^1.54031
+dist_lakes1 <- modelproperty$dist_lakes^-0.61662
+
+Fit_property4 <- lm(price ~ bed1 + bath1 + area + areaheated1 + dist_cbd + dist_lakes1 + pool, data = modelproperty)
+
+gvmodelProperty4 <- gvlma(Fit_property4)
+summary(gvmodelProperty4)
+
+par(mfrow = c(2, 2))
+plot(Fit_property4)
+
+# The four plots are slightly improved especially the residuals vs fitted plot where we can see a more linear function. However, none of the assumptions has changed. The new model 2 is not effective
+```
+
+
+Conclusion: After several attempts and manipulations to correct the different violations, it looks like there is an issue with the data collection  that might be responsible for the spikes. Therefore, regardless of the transformation, we will not be able to eliminate all the violations. Nonetheless, even though, the distributions are still not normal, the different manipulations have improved the data set.
+
+
+# Prediction
+
+Based on the following inputs, predict the deflated sales price:
+
+- 2 bed
+- 2 bath
+- area_heated = 1223
+- area = 9750
+- dist_cbd = 19368
+- dist_lakes = 490
+- no pool
+
+```{r}
+newproperty <- data.frame("bed"= 2,
+                       "bath" = 2,
+                       "area_heated" = 1223,
+                       "area" = 9750,
+                       "dist_cbd" = 19368, 
+                       "dist_lakes" = 490,
+                       pool =factor(c("0")))
+
+
+predict(Fit_property, newproperty)
+```
+
+The deflated sales price $100339.2
+
