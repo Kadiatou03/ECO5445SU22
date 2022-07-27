@@ -1,0 +1,104 @@
+---
+title: "Assignment 07"
+output: html_document
+date: '2022-07-26'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+
+library(readr)
+library(dplyr)
+library(car)
+library(gvlma)
+```
+
+
+# Importing Data 
+
+```{r}
+library(dplyr)
+Property <- read.csv("data/prop_prices_reduced.csv")
+
+#Renaming column sale_def with an intuitive name: price
+
+Property <- rename(Property, price = sale_def)
+
+# Factor in  data: Pool
+Property$pool <- factor(Property$pool)
+
+```
+
+# Separate data into testing and training
+
+```{r}
+set.seed(1234)
+data = sort(sample(nrow(Property), nrow(Property)*.9))
+
+#creating training data set by selecting the output row values
+train<-Property[data,]
+#creating test data set by not selecting the output row values
+test<-Property[-data,]
+```
+
+# Run previous final model to the training data
+
+```{r}
+library(car)
+train$logprice =log(train$price)
+train$logarea= log(train$area)
+train$logbath= log(train$bath)
+train$logarea_heated = log(train$area_heated)
+train$logDist_lakes = log(train$dist_lakes)
+ 
+library(gvlma)
+Fit_train <- lm(logprice ~ bed + logbath + area + logarea_heated + dist_cbd + logDist_lakes + pool, data = train)
+
+gvmodeltrain<- gvlma(Fit_train)
+summary(gvmodeltrain)
+
+par(mfrow = c(2, 2))
+plot(Fit_train)
+```
+
+# Run the standard LASSO regression model on the training data.
+```{r}
+# Factor pool
+train$pool <- factor(train$pool)
+
+# Generating dependent variable
+y <- train$logprice
+
+# Generate Independent Variables
+library(Matrix)
+x <- sparseMatrix (a =as.numeric(train$bed), b =as.numeric(train$logbath), c =as.numeric(train$logbath))
+
+, d =as.numeric(train$area), e =as.numeric(train$logarea_heated), f =as.numeric(train$dist_cbd), g =as.numeric(train$logDist_lakes), H =as.numeric(train$pool))
+
+
+library(gamlr)
+LASSOmodel <- gamlr(x, y, verb=TRUE)
+
+summary(LASSOmodel)
+plot(LASSOmodel)
+```
+
+# Run a 10-fold cross-validated LASSO on the training data
+```{r}
+cv.LASSOmodel <- cv.gamlr(x, y, verb=TRUE,nfold =10)
+
+```
+
+
+# Calculate the RMSE for each of the lambda's selection methods discussed (AIC, BIC, AICc, cv.min, cv.1se) using the testing data. Which method performed the best in prediction the home price?
+```{r}
+log(LASSOmodel$lambda[which.min(AICc(LASSOmodel))])
+log(LASSOmodel$lambda[which.min(AIC(LASSOmodel))])
+log(LASSOmodel$lambda[which.min(BIC(LASSOmodel))])
+log(cv.spender$lambda.min)
+log(cv.spender$lambda.1se)
+
+```
