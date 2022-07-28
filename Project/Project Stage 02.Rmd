@@ -1,0 +1,106 @@
+---
+title: "Project Stage 02"
+output: html_document
+date: '2022-07-25'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#                                       Part A: Data Collection and rearrangement
+# Importing the dataset into R
+
+```{r}
+library(readr)
+data <- read_csv("~/GitHub/ECO5445/Project/Data/hmda_sw.csv", col_types="ccddd")
+
+View(data)
+```
+
+Choice of variables (Slightly changed from project stage 01)
+
+The composition of the sample shows intuitive details that can help assess whether there was racial discrimination in the mortgage approval process. The variables chosen are the applicants race (A_race) to test the main hypothesis, their monthly income (Monthly_income),the two Debt-to-income ratios ( Expenses/income ) and ( obligations/income ) that shows applicant's debts obligations compared to their income and applicants' ability to pay back a loan, their marital status(Marital_status) which could affect the stability of the household income, as well as their level of education (Education) which can approximate their earnings and allows speculations about their credit worthiness. 
+ 
+The sample also tells whether applicants are self-employed (Self_employed) because self-employed individuals tend to suffer more income risk and their earnings are more difficult to verify. The sample accounts for the Applicants' probability of unemployment (Unemployed_Prob) which is also important because lenders are skeptical about individuals who are employed in depressed sectors of regional economy, as well as the number of years employed in applicable line of work (Years_employed) as a strong employment history proves the applicant has a steady income and ability to make regular loan payments.
+
+The sample further includes variables such as the number of dependents('No_dependents') which can affect the income available to carry the loan, the type of action taken (Action_taken) by lenders, the Loan amount requested by applicants (Loan_amount), the applicants' credit history:(MTG_credit_history) and (Consum_credit_hist) because the more severe applicant's past credit problems are, the higher the probability that their loans are denied. Furthermore, the sample has applicants' net worth in dollar amounts which can be easily trade for cash within a short amount of time to pay mortgage if necessary. Finally, the selection contains information about the Appraised value of the house (Appraised_value) which ensures that applicants are not entering into a bad real estate deal, and the appraisal also directly affects the amount of mortgage loaned.
+ 
+# Renanming the variables
+```{r}
+library(dplyr)
+data <- rename(data, "Action_taken" = "s7", "Loan_amount" = "s6" , "A_race" = "s13" , "No_dependents" =  "s24a",
+               "Years_employed" = "s25a" , "ExpensesIncome" = "s45", "ObligationsIncome" = "s46", "Self_employed" =               "s27a", "Marital_status" = "s23a", "Education" = "school", "Monthly_income" = "s31a", "Net_worth" =                  "netw", "Appraised_value" = "s50", "Unemployed_Prob" = "uria", "MTG_credit_hist" = "s42",                              "Consum_credit_hist" = "s43")
+View(data)
+```
+
+
+
+                                     
+                                      Part B: Summary statistics and data vizualization
+
+# Table with the variables selected: sample                                      
+```{r}
+sample <- select(data, Action_taken, Loan_amount, A_race, No_dependents, Years_employed, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education, Unemployed_Prob, Appraised_value, Monthly_income, Net_worth, MTG_credit_hist, Consum_credit_hist)
+```
+
+# Pointing out Factors in  data
+```{r}
+sample$Action_taken <- factor(sample$Action_taken)
+sample$A_race <- factor(sample$A_race)
+sample$Marital_status <- factor(sample$Marital_status)
+sample$MTG_credit_hist <- factor(sample$MTG_credit_hist)
+sample$Consum_credit_hist <- factor(sample$Consum_credit_hist)
+
+```
+
+# Basis summary statistics
+```{r}
+summary(sample)
+   # Loan amount (in thousands)
+   # Appraised value (in thousands)
+```
+
+
+# Correlation between all the quantitative variables
+```{r}
+QuantitativeSample <- select(data, Loan_amount, No_dependents, Years_employed, ExpensesIncome, ObligationsIncome, Self_employed, Education, Unemployed_Prob, Appraised_value, Monthly_income, Net_worth)
+
+cor(QuantitativeSample)
+
+ 
+```
+
+
+# Histograms
+```{r}
+attach(data)
+par(mfrow = c(2, 4))
+hist(Action_taken)
+hist(Loan_amount)
+hist(A_race)
+hist(No_dependents)
+hist(Years_employed)
+hist(ExpensesIncome)
+hist(ObligationsIncome)
+hist(Self_employed)
+hist(Education)
+
+
+Action_taken, Loan_amount, A_race, No_dependents, Years_employed, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education, Unemployed_Prob, Appraised_value, Monthly_income, Net_worth, MTG_credit_hist, Consum_credit_hist
+```
+
+
+# Scatterplots
+```{r}
+scatterplotMatrix(QuantitativeSample, main = "Quantitative Variables Scatterplots")
+```
+
+
+# Frequency counts and Pie Charts for qualitative variables
+
+```{r}
+scatterplotMatrix(QuantitativeSample, main = "Quantitative Variables Scatterplots")
+```
+
+
