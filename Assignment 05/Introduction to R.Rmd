@@ -1,4 +1,16 @@
+---
+title: "Intro to R"
+author: "Kadiatou Sogodogo"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
 
+*JE: Added YAML header and sections*
+
+# Question 2
 ```{r}
 # 2: Repeat questions 2 and 5 from Assignment 02
 
@@ -8,8 +20,8 @@ print(class(i))
 p <- 2.0
 print(class(p))
 
-k <- 10j
-print(class(k))
+#k <- 10j
+#print(class(k))
 
 l <- "2 Cool for School"
 print(class(l))
@@ -19,13 +31,15 @@ print(class(m))
 
 ```
 
+*JE:This section below is from question 3*
 
 ```{r}
-A <- list(2, 2.0, "10j", "2 Cool for School", TRUE)
-print(A)
+#A <- list(2, 2.0, "10j", "2 Cool for School", TRUE)
+#print(A)
 
 ```
 
+*JE: This section was question 4*
 
 ```{r}
 B <- "I like pie more than cake."
@@ -54,7 +68,7 @@ paste(substr(B, start = 0, stop = 6), substr(B, start = 11, stop = 15),substr(B,
 #   y(18)
 #  'foo'
 
-y <- function (x)
+y <- function (x) { # Missed the braces
 
   if (x%%3 ==0 & x%%5 ==0) {
   return("foobar")
@@ -64,16 +78,17 @@ y <- function (x)
   return("bar")
 } else 
   return("Not a multiple of 3, 5, or 15")
-
+}# Missed the braces (-2)
 # Testing the function y(x)
 
 y(6)
 y(15)
 y(25)
 y(673)
-
+#y("cat")
 ```
 
+*JE: Only provided one example within description. Also description was outside of the function. Additionally, did not test all cases. Strings break the function (-3)*
 
 ```{r}
 # 3: Bring in the dataset "swiss" 
@@ -82,6 +97,7 @@ data("swiss")
 
 ```
 
+# Question 4
 
 ```{r}
 # 4: Summary statistics of dataframe in R
@@ -89,16 +105,17 @@ data("swiss")
 summary(swiss)
 
 ```
-
+*JE: Missing spread of data (-5)*
+# Question 5
 
 ```{r}
-
 # 5: Which Province has the highest percent of males involved in agriculture as their occupation?
 
 row.names(swiss)[swiss$Agriculture == max(swiss$Agriculture)]
 
 ```
 
+# Question 6
 
 ```{r}
 # 6: Provide the correlation values between all the variables
@@ -107,6 +124,7 @@ cor(swiss)
 
 ```
 
+# Question 7
 
 ```{r}
 # 7: Plot the relationship between fertility and education where fertility is on the y-axis and education is on the x-axis
@@ -114,7 +132,7 @@ cor(swiss)
 plot(Fertility ~ Education, swiss, main="Relationship between Fertility and Education")
 
 ```
-
+# Question 8
 
 ```{r}
 # 8: Provide a histogram of the % of individuals that were catholic
