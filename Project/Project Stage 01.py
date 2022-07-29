@@ -1,8 +1,12 @@
+###############################################################################
+# Copy header formatting from my scripts
+# Script fails to fully run
+###############################################################################
 
-#                                                        Part 3: Data Collection and rearrangement
+# Part 3: Data Collection and rearrangement
 import os 
 import pandas as pd 
-import matplotlib.pyplot as plt 
+# import matplotlib.pyplot as plt was imported, but not used
 import seaborn as sns
 
 
@@ -10,6 +14,7 @@ import seaborn as sns
 os.getcwd()
 # Change to a new directory.
 git_path = 'C:/Users/kadiatou/Documents/GitHub/ECO5445/'
+git_path = 'C:/Users/jo585802/OneDrive - University of Central Florida/Documents/GitHub/ECO5445/' # Needed line to test data
 os.chdir(git_path + 'Project/Data')
 
 # Check that the change was successful.
@@ -69,6 +74,11 @@ df['Consum_credit_hist']=pd.Categorical(df.Consum_credit_hist)
 
 # Table with the variables selected: df1
 
+###############################################################################
+# Didn't happen to notice that 999,999.4 is the designation for missing 
+# numerical data. Summary statistics will be skewed.
+###############################################################################
+
 df1 = df[['Action_taken','Loan_amount','A_race','No_dependents','Years_employed','Expenses/income','Obligations/income','Self_employed','Marital_status','Education','Unemployed_Prob','Appraised_value','Monthly_income', 'Liquid_assets','MTG_credit_hist', 'Consum_credit_hist']]
 
 
@@ -120,7 +130,12 @@ test_hypothesis3b_data.iloc[0,1]
 
 hypothesis4_data = df[["No_dependents","Expenses/income"]]
 test_hypothesis4_data= hypothesis4_data.corr()
-test_hypothesis4_data.iloc[0,1]
+
+###############################################################################
+# Had to comment this next line out, this is not a 2x2 matrix
+###############################################################################
+# test_hypothesis4_data.iloc[0,1]
+
 # Corr = 0.024701, this extremely weak correlation does not agree with H4 and may indicate that the number of dependent
 # do not have a significant effect on the debt ratio (Expenses/income)
 
@@ -163,6 +178,9 @@ test_hypothesis8_data.iloc[0,1]
 Scatter_data1 = df[['Loan_amount','Appraised_value','Expenses/income','Obligations/income','Monthly_income']] 
 sns.pairplot(Scatter_data1, corner = True)
 
+###############################################################################
+# This plot fails to compile
+###############################################################################
 Scatter_data2 = df[['Monthly_income','Liquid_assets','No_dependents','Years_employed','Years_employed']] 
 sns.pairplot(Scatter_data2, corner = True)
 
@@ -217,6 +235,10 @@ ConsumerCreditHistory = df['Consum_credit_hist'].value_counts()
 ConsumerCreditHistory.plot.pie(autopct='%1.1f%%',subplots=True) 
 
 
+###############################################################################
+# What does this all say about the average applicant?
+###############################################################################
+
 #                                 Part 5: Approval Probability
                               
 # The baseline probability of an individual being approved for a mortgage
@@ -262,6 +284,11 @@ Table= pd.DataFrame(ApplicantData)
  
 
 #                                                      Part 7: Probabilities
+
+###############################################################################
+# This next part requires you to look at a table, then manually input values.
+# We can extract values from the tables instead of hand typing them
+###############################################################################
 
 # P(Approved | White) is the number of white applicants approved divided by total white applicants
 Pw = 1852 / 2041
