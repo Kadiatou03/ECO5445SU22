@@ -8,41 +8,85 @@ date: '2022-07-25'
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-#                                       Part A: Data Collection and rearrangement
+```{r}
+library(readr)
+library(pROC)
+library(rpart)
+library(rpart.plot)
+library(party)
+library(randomForest)
+library(e1071)
+```
+                                    
+                                      Part A: Data Collection and rearrangement
 # Importing the dataset into R
 
 ```{r}
 library(readr)
-data <- read_csv("~/GitHub/ECO5445/Project/Data/hmda_sw.csv", col_types="ccddd")
+mortgage <- read_csv("~/GitHub/ECO5445/Project/Data/hmda_sw.csv", col_types="ccddd")
 
-View(data)
 ```
 
-Choice of variables (Slightly changed from project stage 01)
+# Cleaning data from missing numeric data hard coded as 999,999.4 and 999,999
 
-The composition of the sample shows intuitive details that can help assess whether there was racial discrimination in the mortgage approval process. The variables chosen are the applicants race (A_race) to test the main hypothesis, their monthly income (Monthly_income),the two Debt-to-income ratios ( Expenses/income ) and ( obligations/income ) that shows applicant's debts obligations compared to their income and applicants' ability to pay back a loan, their marital status(Marital_status) which could affect the stability of the household income, as well as their level of education (Education) which can approximate their earnings and allows speculations about their credit worthiness. 
- 
-The sample also tells whether applicants are self-employed (Self_employed) because self-employed individuals tend to suffer more income risk and their earnings are more difficult to verify. The sample accounts for the Applicants' probability of unemployment (Unemployed_Prob) which is also important because lenders are skeptical about individuals who are employed in depressed sectors of regional economy, as well as the number of years employed in applicable line of work (Years_employed) as a strong employment history proves the applicant has a steady income and ability to make regular loan payments.
+```{r}
+mortgage [mortgage == 999999.4] <- NA
+mortgage [mortgage == 999999] <- NA
 
-The sample further includes variables such as the number of dependents('No_dependents') which can affect the income available to carry the loan, the type of action taken (Action_taken) by lenders, the Loan amount requested by applicants (Loan_amount), the applicants' credit history:(MTG_credit_history) and (Consum_credit_hist) because the more severe applicant's past credit problems are, the higher the probability that their loans are denied. Furthermore, the sample has applicants' net worth in dollar amounts which can be easily trade for cash within a short amount of time to pay mortgage if necessary. Finally, the selection contains information about the Appraised value of the house (Appraised_value) which ensures that applicants are not entering into a bad real estate deal, and the appraisal also directly affects the amount of mortgage loaned.
- 
-# Renanming the variables
+na.omit(mortgage)
+```
+
+# Renanming some variables of interest
+
 ```{r}
 library(dplyr)
-data <- rename(data, "Action_taken" = "s7", "Loan_amount" = "s6" , "A_race" = "s13" , "No_dependents" =  "s24a",
-               "Years_employed" = "s25a" , "ExpensesIncome" = "s45", "ObligationsIncome" = "s46", "Self_employed" =               "s27a", "Marital_status" = "s23a", "Education" = "school", "Monthly_income" = "s31a", "Net_worth" =                  "netw", "Appraised_value" = "s50", "Unemployed_Prob" = "uria", "MTG_credit_hist" = "s42",                              "Consum_credit_hist" = "s43")
-View(data)
+mortgage <- rename(mortgage, "Deny_Approve" = "s7", "Loan_amount" = "s6" , "A_race" = "s13" , "No_dependents" =  "s24a", "Years_employed" = "s25a" , "Liquid_assets"= "s35", "ExpensesIncome" = "s45", "ObligationsIncome" = "s46", "Self_employed" = "s27a", "Marital_status" = "s23a", "Education" = "school", "Monthly_income" = "s31a", "Net_worth" =  "netw", "Unemployed_Prob" = "uria", "MTG_credit_hist" = "s42", "Consum_credit_hist" = "s43")
+
+View(mortgage)
 ```
 
+# Initial Choice of variables (Slightly changed from project stage 01)
 
+The composition of the following sample can help assess whether there was racial discrimination in the mortgage approval process. The variables chosen are the applicants race (A_race) to test the main hypothesis, their monthly income (Monthly_income),the two Debt-to-income ratios ( Expenses/income ) and ( obligations/income ) that shows applicant's debts obligations compared to their income and applicants' ability to pay back a loan, their marital status(Marital_status) which could affect the stability of the household income, as well as their level of education (Education) which can approximate their earnings and allows speculations about their credit worthiness. 
+ 
+The sample also shows whether applicants are self-employed (Self_employed) because self-employed individuals tend to suffer more income risk and their earnings are more difficult to verify. The sample accounts for the Applicants' probability of unemployment (Unemployed_Prob) which is also important because lenders are skeptical about individuals who are employed in depressed sectors of regional economy, as well as the number of years employed in applicable line of work (Years_employed) as a strong employment history proves the applicant has a steady income and ability to make regular loan payments.
+
+The sample further includes variables such as the number of dependents('No_dependents') which can affect the income available to carry the loan, the type of action taken by lenders(Deny_Approve), the Loan amount requested by applicants (Loan_amount), the applicants' credit history:(MTG_credit_history) and (Consum_credit_hist) because the more severe applicant's past credit problems are, the higher the probability that their loans are denied. Furthermore, the sample has applicants' liquid assets in dollar amounts which can be easily trade for cash within a short amount of time to pay mortgage if necessary. Finally, the selection contains information about the applicants' net worth which determine what us left after subtracting liabilities from assets, in other terms, what they own after subtracting what they owe.
 
                                      
                                       Part B: Summary statistics and data vizualization
-
-# Table with the variables selected: sample                                      
+                                      
+# dataframe with the variables selected: SampleStatistics                                      
 ```{r}
-sample <- select(data, Action_taken, Loan_amount, A_race, No_dependents, Years_employed, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education, Unemployed_Prob, Appraised_value, Monthly_income, Net_worth, MTG_credit_hist, Consum_credit_hist)
+SampleStatistics <- select(mortgage, Deny_Approve, Loan_amount, Race, No_dependents, Years_employed, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education, Unemployed_Prob, Monthly_income, Liquid_assets, Net_worth, MTG_credit_hist, Consum_credit_hist)
+
 ```
+
+# Decision tree to narrow down initial variable selection
+
+```{r}
+set.seed(1234)
+
+dtree <- rpart(deny_approve  ~  ObligationsIncome + Monthly_income + Loan_amount + Unemployed_Prob + Net_worth + MTG_credit_hist+ No_dependents + Consum_credit_hist, data = mortgage, method = 'class', parms = list(split = 'information'))
+
+# + Appraised_value,
+
+
+prp(dtree, type = 2, extra = 104,fallen.leaves = T)
+
+``` 
+
+# Assigning labels to categorical variable
+
+```{r}
+SampleStatistics$Deny_Approve <- factor(SampleStatistics$Deny_Approve,levels = c(1,2,3), labels = c("Approve", "Approve","Deny"))
+SampleStatistics$Race <- factor(SampleStatistics$Race,levels = c(3,5), labels = c("Black", "White"))
+SampleStatistics$Marital_status <- factor(SampleStatistics$Marital_status ,levels = c('M','U','S'), labels = c("Married", "Unmarried", "separated"))
+SampleStatistics$Self_employed <- factor(SampleStatistics$Self_employed, levels = c(0,1), labels = c("No", "Yes"))
+
+
+```
+
 
 # Pointing out Factors in  data
 ```{r}
@@ -56,10 +100,14 @@ sample$Consum_credit_hist <- factor(sample$Consum_credit_hist)
 
 # Basis summary statistics
 ```{r}
-summary(sample)
-   # Loan amount (in thousands)
-   # Appraised value (in thousands)
+summary(SampleStatistics)
+# Loan amount (in thousands)
+
 ```
+# Explanation
+
+
+
 
 
 # Correlation between all the quantitative variables
@@ -69,13 +117,16 @@ QuantitativeSample <- select(data, Loan_amount, No_dependents, Years_employed, E
 cor(QuantitativeSample)
 
  
+#Explanation
+
+
 ```
 
 
 # Histograms
 ```{r}
 attach(data)
-par(mfrow = c(2, 4))
+par(mfrow = c(3, 5))
 hist(Action_taken)
 hist(Loan_amount)
 hist(A_race)
@@ -85,9 +136,13 @@ hist(ExpensesIncome)
 hist(ObligationsIncome)
 hist(Self_employed)
 hist(Education)
+hist(Unemployed_Prob)
+hist(Appraised_value)
+hist(Monthly_income)
+hist(Net_worth)
+hist(MTG_credit_hist)
+hist(Consum_credit_hist)
 
-
-Action_taken, Loan_amount, A_race, No_dependents, Years_employed, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education, Unemployed_Prob, Appraised_value, Monthly_income, Net_worth, MTG_credit_hist, Consum_credit_hist
 ```
 
 
@@ -100,7 +155,75 @@ scatterplotMatrix(QuantitativeSample, main = "Quantitative Variables Scatterplot
 # Frequency counts and Pie Charts for qualitative variables
 
 ```{r}
-scatterplotMatrix(QuantitativeSample, main = "Quantitative Variables Scatterplots")
+
+```
+
+
+    Part C: logistic regression model, the ROC curve and the AUC 
+    
+```{r}
+SampleRegression <- select(mortgage, Deny_Approve, Race, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education, Unemployed_Prob)
+
+#Logistic regression model
+
+library(gvlma)
+FitSampleRegression <- lm(Deny_Approve ~ Race + ExpensesIncome + ObligationsIncome + Self_employed + Marital_status + Education, data = SampleRegression)
+
+summary(FitSampleRegression)
+
+# ROC Curve
+
+prob <- predict(logit.fit.reduced, df.validate, type = 'response')
+
+my_roc1 <- roc(df.validate$class ~ prob, plot = TRUE)
+coords(my_roc, "best", ret = "threshold")
+
+# The confusion matrix at alternative cut-off levels, 
+
+
+
+# the classifier sensitivity, specificity, the false-positive rate, the false-negative rate, the model accuracy and error rate to confirm they are the same as those produced by R
+
+performance <- function(table, n = 4){
+  if(!all(dim(table) == c(2,2)))
+    stop("Must be a 2 x 2 table")
+  tn = table[1,1]
+  fp = table[1,2]
+  fn = table[2,1]
+  tp = table[2,2]
+  sensitivity = tp/(tp+fn)
+  specificity = tn/(tn+fp)
+  ppp = tp/(tp+fp)
+  npp = tn/(tn+fp)
+  hitrate = (tp+tn)/(tp+tn+fp+fn)
+  result <- paste0("Sensitivity = ", round(sensitivity,n),
+                   "\nSpecificity = ",round(specificity,n),
+                   "\nPositive Predictive Value = ", round(ppp,n),
+                   "\nNegative Predictive Value = ", round(npp,n),
+                   "\nAccuracy = ", round(hitrate,n))
+```
+
+
+                      Part D: Cross validation
+
+```{r}
+# Generating dependent variable
+y <- train$logprice
+
+# Generate Independent Variables
+library(Matrix)
+library(dplyr)
+xVar <- subset(train, select = -c(logprice))
+
+x <- as.matrix(xVar)
+  
+
+library(gamlr)
+LASSOmodel <- gamlr(x, y,family=c("gaussian"),nlambda=100, lambda.start=Inf,lambda.min.ratio=0.01)
+
+summary(LASSOmodel)
+plot(LASSOmodel)
+
 ```
 
 
