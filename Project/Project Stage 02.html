@@ -10,6 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(readr)
+library(Matrix)
+library(dplyr)
+library(gamlr)
 library(pROC)
 library(rpart)
 library(rpart.plot)
@@ -18,16 +21,17 @@ library(randomForest)
 library(e1071)
 ```
                                     
-                                      Part A: Data Collection and rearrangement
+                                                      Part A: Data Collection and rearrangement
 # Importing the dataset into R
 
 ```{r}
 library(readr)
 mortgage <- read_csv("~/GitHub/ECO5445/Project/Data/hmda_sw.csv", col_types="ccddd")
-
 ```
+###### Warning: One or more parsing issues, see `problems()` for details???????
 
-# Cleaning data from missing numeric data hard coded as 999,999.4 and 999,999
+
+#### Cleaning data from missing numeric data hard coded as 999,999.4 and 999,999
 
 ```{r}
 mortgage [mortgage == 999999.4] <- NA
@@ -40,150 +44,254 @@ na.omit(mortgage)
 
 ```{r}
 library(dplyr)
-mortgage <- rename(mortgage, "Deny_Approve" = "s7", "Loan_amount" = "s6" , "A_race" = "s13" , "No_dependents" =  "s24a", "Years_employed" = "s25a" , "Liquid_assets"= "s35", "ExpensesIncome" = "s45", "ObligationsIncome" = "s46", "Self_employed" = "s27a", "Marital_status" = "s23a", "Education" = "school", "Monthly_income" = "s31a", "Net_worth" =  "netw", "Unemployed_Prob" = "uria", "MTG_credit_hist" = "s42", "Consum_credit_hist" = "s43")
+mortgage <- rename(mortgage, "Deny_Approve" = "s7", "Loan_amount" = "s6" , "Race" = "s13" , "No_dependents" =  "s24a", "Years_employed" = "s25a" , "Liquid_assets"= "s35", "ExpensesIncome" = "s45", "ObligationsIncome" = "s46", "Self_employed" = "s27a", "Marital_status" = "s23a", "Education" = "school", "Income" = "s17", "Net_worth" =  "netw", "Unemployed_Prob" = "uria", "MTG_credit_hist" = "s42", "Consum_credit_hist" = "s43", "Appraised_value"="s50")
 
 View(mortgage)
 ```
 
-# Initial Choice of variables (Slightly changed from project stage 01)
+# Initial Choice of variables
+Slightly changed from project stage 01, this will provide intuitive information on representative applicant while doing summary statistics.
 
-The composition of the following sample can help assess whether there was racial discrimination in the mortgage approval process. The variables chosen are the applicants race (A_race) to test the main hypothesis, their monthly income (Monthly_income),the two Debt-to-income ratios ( Expenses/income ) and ( obligations/income ) that shows applicant's debts obligations compared to their income and applicants' ability to pay back a loan, their marital status(Marital_status) which could affect the stability of the household income, as well as their level of education (Education) which can approximate their earnings and allows speculations about their credit worthiness. 
+The variables chosen are the applicants race (A_race) to test the main hypothesis, their annual income (Income),the two Debt-to-income ratios ( Expenses/income ) and ( obligations/income ) that shows applicant's debts obligations compared to their income and applicants' ability to pay back a loan, their marital status(Marital_status) which could affect the stability of the household income, as well as their level of education (Education) which can approximate their earnings and allows speculations about their credit worthiness. 
  
 The sample also shows whether applicants are self-employed (Self_employed) because self-employed individuals tend to suffer more income risk and their earnings are more difficult to verify. The sample accounts for the Applicants' probability of unemployment (Unemployed_Prob) which is also important because lenders are skeptical about individuals who are employed in depressed sectors of regional economy, as well as the number of years employed in applicable line of work (Years_employed) as a strong employment history proves the applicant has a steady income and ability to make regular loan payments.
 
-The sample further includes variables such as the number of dependents('No_dependents') which can affect the income available to carry the loan, the type of action taken by lenders(Deny_Approve), the Loan amount requested by applicants (Loan_amount), the applicants' credit history:(MTG_credit_history) and (Consum_credit_hist) because the more severe applicant's past credit problems are, the higher the probability that their loans are denied. Furthermore, the sample has applicants' liquid assets in dollar amounts which can be easily trade for cash within a short amount of time to pay mortgage if necessary. Finally, the selection contains information about the applicants' net worth which determine what us left after subtracting liabilities from assets, in other terms, what they own after subtracting what they owe.
+The sample further includes variables such as the number of dependents('No_dependents') which can affect the income available to carry the loan, the type of action taken by lenders(Deny_Approve), the Loan amount requested by applicants (Loan_amount), the applicants' credit history:(MTG_credit_history) and (Consum_credit_hist) because the more severe applicant's past credit problems are, the higher the probability that their loans are denied. Furthermore, the sample has applicants' liquid assets in dollar amounts which can be easily trade for cash within a short amount of time to pay mortgage if necessary. Finally, the selection contains information about the applicants' net worth which determine what us left after subtracting liabilities from assets, in other terms, what they own after subtracting what they owe. This can be used to calculate the applicant's probability of default.
 
+#Hypotheses
+
+Given the sample, the following hypotheses are build on the quantitative variables based on information provided in the paper. The relationship direction is indicated by (+) and (-).  
+
+H1: The higher the appraisal value, the higher the loan amount (loan is based on the appraisal) (+)
+H2: The higher the income, the higher loan amount, (individuals would not borrowed beyond what they can afford to pay back) (+)
+H3: The higher the loan amount, the lower the two Debt-to-income ratios, (showing ability to pay) (-) 
+H4: The higher the number of dependents, the higher Expenses/income (showing effect of dependent on debt to income ratio) (+)
+H5: The higher the number of years of education, the higher employment years (More educated individuals tend to be stable on the job market) (+)
+H6: The higher the income, the lower the two Debt-to-income ratios (Displaying ability to pay back loan) (-)
+H7: The higher the number of years of education, the lower the probability of being unemployed (More educated individuals have low unemployment probability) (-)
+H8: The higher the number of years of education, the higher the income (+)
+H9: The higher the net worth, the higher the loan amount (a high net worth could indicate ability to borrow high loan) (+) 
+   
                                      
                                       Part B: Summary statistics and data vizualization
                                       
-# dataframe with the variables selected: SampleStatistics                                      
+                                      
+# Dataframe with the variables selected: SampleStatistics                                      
 ```{r}
-SampleStatistics <- select(mortgage, Deny_Approve, Loan_amount, Race, No_dependents, Years_employed, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education, Unemployed_Prob, Monthly_income, Liquid_assets, Net_worth, MTG_credit_hist, Consum_credit_hist)
+SampleStatistics <- select(mortgage, Deny_Approve, Loan_amount, Race, No_dependents, Years_employed, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education, Unemployed_Prob, Income, Liquid_assets, Net_worth, MTG_credit_hist, Consum_credit_hist, Appraised_value)
 
 ```
 
-# Decision tree to narrow down initial variable selection
-
-```{r}
-set.seed(1234)
-
-dtree <- rpart(deny_approve  ~  ObligationsIncome + Monthly_income + Loan_amount + Unemployed_Prob + Net_worth + MTG_credit_hist+ No_dependents + Consum_credit_hist, data = mortgage, method = 'class', parms = list(split = 'information'))
-
-# + Appraised_value,
-
-
-prp(dtree, type = 2, extra = 104,fallen.leaves = T)
-
-``` 
-
-# Assigning labels to categorical variable
+# Assigning labels to categorical variables
 
 ```{r}
 SampleStatistics$Deny_Approve <- factor(SampleStatistics$Deny_Approve,levels = c(1,2,3), labels = c("Approve", "Approve","Deny"))
 SampleStatistics$Race <- factor(SampleStatistics$Race,levels = c(3,5), labels = c("Black", "White"))
 SampleStatistics$Marital_status <- factor(SampleStatistics$Marital_status ,levels = c('M','U','S'), labels = c("Married", "Unmarried", "separated"))
 SampleStatistics$Self_employed <- factor(SampleStatistics$Self_employed, levels = c(0,1), labels = c("No", "Yes"))
+SampleStatistics$MTG_credit_hist <- factor(SampleStatistics$MTG_credit_hist, levels = c(1,2,3,3), labels = c("Excellent","No record","Fair", "bad"))
+SampleStatistics$Consum_credit_hist <- factor(SampleStatistics$Consum_credit_hist, levels = c(1,2,3,4,5,6), labels = c("Excellent", "good", "fair", "Insufficient record", "bad", "Serious"))
 
 
+View(SampleStatistics)
 ```
 
+# Correlation between all the quantitative variables from the initial sample
 
-# Pointing out Factors in  data
 ```{r}
-sample$Action_taken <- factor(sample$Action_taken)
-sample$A_race <- factor(sample$A_race)
-sample$Marital_status <- factor(sample$Marital_status)
-sample$MTG_credit_hist <- factor(sample$MTG_credit_hist)
-sample$Consum_credit_hist <- factor(sample$Consum_credit_hist)
+QuantitativeSample <- select(mortgage, Loan_amount, No_dependents, Years_employed, ExpensesIncome, ObligationsIncome, Education, Unemployed_Prob, Income, Liquid_assets, Net_worth, Appraised_value)
 
+cor(QuantitativeSample)
 ```
+#### Why there is NA in the correlation?
+
+# Testing the hypotheses through Correlation: Results
+
+Some interesting Correlation between variables testing the hypotheses
+
+H1 Result: Corr = 0.72674. As predicted, there is a positive relationship between the variables and it is quite strong. High loan amounts should be backed by an appropriate appraisal value.
+
+H2 Result: Corr = 0.57994. As predicted, there is a positive relationship between the variables that is fairly strong. The monthly should be enough to cover the loan amount.
+
+H3a Result: Corr = 0.06986. The result does not agree with the H3. There is a very weak relationship between the variables which indicates that they may not be correlated. Therefore, the debt ratio does not influence the loan amount.
+
+H3a Result: Corr = 0.062999. This result also does not agree with H3. There is a very weak relationship between the variables which indicates that they may not be correlated. Therefore, the debt ratio does not influence the loan amount.
+
+H4 Result: Corr = 0.024701, this extremely weak correlation does not agree with H4 and may indicate that the number of dependent do not have a significant effect on the debt ratio (Expenses/income)
+
+H5 Result: Corr = 0.202061. H5 is weakly proven by this correlation but there is a slightly moderate and positive relationship between the number of years being employed and the level of education.
+
+#H6a Result: Corr = -0.221467. As predicted, there is a negative relationship and the variables are inversely correlated. Nonetheless, it is still a weak correlation meaning that as income increases, expenses/income ratio slightly decreases.
+
+#H6b Result: Corr = - 0.163608. As predicted, H6 is weakly proven as the negative coefficient indicates that the two variables are negatively correlated, therefore, as income increases, Obligations/income ratio slightly decreases
+
+H7 Result: Corr = 0.011410. The coefficient is positive but so low, that there may be not a relationship between the level of education and the numbers of years being employed. Therefore, H7 is not proven.
+
+#H8 Result: Corr = -0.0033949. H8 predicted a positive relationship but the coefficient says the contrary. Nonetheless, it is such a low number that it can be implied that there is no relationship between the level of education and income.
+
+H9 Result: Corr= 0.2022157. As predicted, there is a positive relationship between net worth and loan amount. Nonetheless, it is still a weak correlation.
 
 # Basis summary statistics
 ```{r}
 summary(SampleStatistics)
 # Loan amount (in thousands)
-
+# Applicant income (in thousands) 
 ```
-# Explanation
 
+The summary statistics shows that there are 2095 applications approved and 285 applications denied with 339 black applicants and 2041 applicants. The summary indicates that on average, applicants request around 139,135 dollars from banks and other lending institutions to finance their house purchase and the average appraisal value of houses is 198,543 dollars. The average debt to income is 25.53 for expenses over income and 33.08 for obligations over income meaning that average applicant has 25.53 of monthly gross income that goes toward paying expenses and 33.08 towards paying obligations. 277 applicants are Self_employed out of 2380 and 1444 of them are married, 860 unmarried and 74 separated. The average applicant has zero or one dependent and their annual is approximately 76,120 dollars. The average of the different probabilities of unemployment by industry is 3% and on average, applicants level of education is around 15.5 years of school .The average net worth of applicants and co-applicants is 253.04 dollars. On the other hand, applicant's liquids assets on average is worth 93,070 dollars. Finally, most applicants have either an excellent credit history of mortgage payments or no mortgage payment history; additionally, nearly half of applicants have a great credit history of consumer payments. 
 
+# Narrowing down the initial variables selection for more insightful scatterplots and histograms
 
+The new selection contain the most relevant variables to the mortgage application approval/denial process and it is based on the paper information and the correlation results. This new selection will facilitate suggestions for transforming variables for the logistic regression. In the HMDA Data, it was stated that the net wealth coefficient and the number of dependents had no significant effect on the mortgage lending decision. The level of education and years on the job were generally statistically significant.Liquid assets also do not appear to affect the probability of denial. Moreover employment risk has no significant effect on the estimated effect of race in the mortgage lending decision( pg.39).
 
-
-# Correlation between all the quantitative variables
+####Decision tree not working
 ```{r}
-QuantitativeSample <- select(data, Loan_amount, No_dependents, Years_employed, ExpensesIncome, ObligationsIncome, Self_employed, Education, Unemployed_Prob, Appraised_value, Monthly_income, Net_worth)
+set.seed(1234)
 
-cor(QuantitativeSample)
+attach(SampleStatistics)
 
- 
-#Explanation
+dtree <- rpart(Deny_Approve  ~  Income + Loan_amount + Unemployed_Prob + Net_worth + MTG_credit_hist+ No_dependents + Consum_credit_hist, data = SampleStatistics, method = 'class', parms = list(split = 'information'))
 
+prp(dtree, type = 2, extra = 104,fallen.leaves = T)
+# - No_dependent
+# - Net worth
+# - years employed
+# - MTG_credit_hist
+# - Consum_credit_hist
+``` 
 
+# The new sample selection
+```{r}
+NewQuantitativeSample <- select(QuantitativeSample, Loan_amount, Appraised_value, ExpensesIncome, ObligationsIncome, Education, Income)
 ```
 
 
 # Histograms
 ```{r}
-attach(data)
-par(mfrow = c(3, 5))
-hist(Action_taken)
+attach(NewQuantitativeSample)
+par(mfrow = c(2, 3))
+
 hist(Loan_amount)
-hist(A_race)
-hist(No_dependents)
-hist(Years_employed)
+hist(Appraised_value)
 hist(ExpensesIncome)
 hist(ObligationsIncome)
-hist(Self_employed)
 hist(Education)
-hist(Unemployed_Prob)
-hist(Appraised_value)
-hist(Monthly_income)
-hist(Net_worth)
-hist(MTG_credit_hist)
-hist(Consum_credit_hist)
+hist(Income)
+
 
 ```
 
 
 # Scatterplots
 ```{r}
-scatterplotMatrix(QuantitativeSample, main = "Quantitative Variables Scatterplots")
+scatterplotMatrix(NewQuantitativeSample, main = "Quantitative Variables Scatterplots")
 ```
 
 
-# Frequency counts and Pie Charts for qualitative variables
+#Barcharts for qualitative variables
 
 ```{r}
+Deny_Approve <- table(SampleStatistics$Deny_Approve)
+barplot(Deny_Approve, main =" Decision", col=c("darkblue","red"),legend = rownames(Deny_Approve))
+
+Race <- table(SampleStatistics$Race)
+barplot(Race, main ="Race", col=c("darkblue","yellow"),legend = rownames(Race))
+
+Marital_status <- table(SampleStatistics$Marital_status) 
+barplot(Marital_status, main ="Marital Status", col=c("darkblue","red","Yellow"),legend = rownames(Marital_status))
+
+Self_employed <- table(SampleStatistics$Self_employed)
+barplot(Self_employed, main ="Self-employed ?", col=c("darkblue","Yellow"),legend = rownames(Self_employed))
+  
+MTG_credit_hist <- table(SampleStatistics$MTG_credit_hist) 
+barplot(MTG_credit_hist, main = "Credit history - mortgage payments", col = c("darkblue","red","Yellow","orange"), legend =rownames(MTG_credit_hist))  
+
+Consum_credit_hist <- table(SampleStatistics$Consum_credit_hist) 
+barplot(Consum_credit_hist, main = "Credit history - consumer payments", col = c("darkgreen","darkblue","purple","Yellow","orange","red"), legend =rownames(Consum_credit_hist))  
+
+```
+# Discussion 
+
+# 
+```{r}
+
 
 ```
 
 
-    Part C: logistic regression model, the ROC curve and the AUC 
-    
-```{r}
-SampleRegression <- select(mortgage, Deny_Approve, Race, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education, Unemployed_Prob)
+                                          Part C: logistic regression model, the ROC curve and the AUC 
 
-#Logistic regression model
+#Logistic regression model    
+```{r}
+SampleRegression <- select(SampleStatistics, Deny_Approve, Race, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education)
+
 
 library(gvlma)
-FitSampleRegression <- lm(Deny_Approve ~ Race + ExpensesIncome + ObligationsIncome + Self_employed + Marital_status + Education, data = SampleRegression)
+FitSampleRegression <- glm(Deny_Approve ~ ObligationsIncome + ExpensesIncome + Race + Self_employed + Marital_status + Education, data = SampleRegression, family = "binomial")
 
 summary(FitSampleRegression)
+```
+#### Question??????? RACE WHITE, SELF-EMPLOYED YES
 
+#Discussion
+ 
+ 
 # ROC Curve
+```{r}
+set.seed(1234)
 
-prob <- predict(logit.fit.reduced, df.validate, type = 'response')
+Train <- sample(nrow(SampleRegression), 0.2*nrow(SampleRegression))
 
-my_roc1 <- roc(df.validate$class ~ prob, plot = TRUE)
-coords(my_roc, "best", ret = "threshold")
+dataTrain <- SampleRegression[Train,]
+dataValidate <- SampleRegression[-Train,]
+ 
 
+prob <- predict(FitSampleRegression, dataValidate, type = 'response')
+
+my_roc <- roc(dataValidate$Deny_Approve ~ prob, plot = TRUE)
+
+# Threshold
+threshold <- coords(my_roc, "best", ret = "threshold")
+
+threshold
+```
+
+# AUC Calculation
+
+```{r}
+auc(my_roc)
+```
 # The confusion matrix at alternative cut-off levels, 
+Confusion matrix 1
+```{r}
+prob <- predict(FitSampleRegression, dataValidate, type = 'response')
 
+logit.pred <- factor(prob > 0.5, levels = c(FALSE,TRUE),
+                     labels = c("Approve","Deny"))
 
+logit.perf <- table(dataValidate$Deny_Approve, logit.pred, dnn = c("Actual","Predicted"))
 
-# the classifier sensitivity, specificity, the false-positive rate, the false-negative rate, the model accuracy and error rate to confirm they are the same as those produced by R
+logit.perf
+```
 
+Confusion matrix 2
+```{r}
+prob <- predict(FitSampleRegression, dataValidate, type = 'response')
+
+logit.pred.thres <- factor(prob > threshold, levels = c(FALSE,TRUE),
+                     labels = c("Approve","Deny"))
+
+logit.perf.thres <- table(dataValidate$Deny_Approve, logit.pred.thres, dnn = c("Actual","Predicted"))
+
+logit.perf.thres
+
+```
+
+#Performance Measures Calculation
+This section include the classifier sensitivity, specificity, the false-positive rate, the false-negative rate, the model accuracy and error rate to confirm they are the same as those produced by R
+
+Creating the performance function
+```{r}
 performance <- function(table, n = 4){
   if(!all(dim(table) == c(2,2)))
     stop("Must be a 2 x 2 table")
@@ -201,19 +309,37 @@ performance <- function(table, n = 4){
                    "\nPositive Predictive Value = ", round(ppp,n),
                    "\nNegative Predictive Value = ", round(npp,n),
                    "\nAccuracy = ", round(hitrate,n))
+  cat(result)
+}
 ```
 
 
-                      Part D: Cross validation
+2. Calculation
+```{r}
+performance(logit.perf)
+performance(logit.perf.thres)
+```
+
+                                                               Part D: Cross validation
 
 ```{r}
+#Sample used for Cross validation
+sampleCv <-select(mortgage, Deny_Approve, Race, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education)
+
+set.seed(1234)
+
+TrainCv <- sample(nrow(sampleCv), 0.2*nrow(sampleCv))
+
+dataTrainCV <- sampleCv[TrainCv,]
+dataValidateCV <- sampleCv[-TrainCv,]
+ 
 # Generating dependent variable
-y <- train$logprice
+y <- 
 
 # Generate Independent Variables
 library(Matrix)
 library(dplyr)
-xVar <- subset(train, select = -c(logprice))
+xVar <- subset(TrainCv, select = -c())
 
 x <- as.matrix(xVar)
   
@@ -226,4 +352,21 @@ plot(LASSOmodel)
 
 ```
 
+# Run a 10-fold cross-validated LASSO on the training data
+```{r}
+cv.LASSOmodel <- cv.gamlr(x, y, verb=TRUE,nfold =10)
 
+```
+                                                      Part E: Superior Logistic Regression Model
+                                                      
+```{r}
+
+
+
+```
+
+
+```{r}
+
+
+```
