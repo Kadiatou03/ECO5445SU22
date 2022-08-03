@@ -80,6 +80,8 @@ Property$pool <- factor(Property$pool)
 # Basis summary statistics
 summary(Property)
 
+# What about spread? sd/var (-5)
+
 # Correlation between all the quantitative variables
 cor(PropertyQuant)
 ```
@@ -116,9 +118,11 @@ plot(Fit_property)
 gvmodelProperty <- gvlma(Fit_property)
 summary(gvmodelProperty)
 
-# All the Gauss-Markov assumptions (Global Stat, Skewness, Kurtosis, Link Function, Heteroscedasticity) are violated. To fix the issues, we will use the Box-Cox transformation or log() transformation to the dependent variable(price) and some of the independent variables to remove Heteroscedasticity. We will also remove some outlier to improve Skewness and Kurtosis. By doing all these manipulations, we hope that all the assumptions will be corrected.
-
 ```
+
+All the Gauss-Markov assumptions (Global Stat, Skewness, Kurtosis, Link Function, Heteroscedasticity) are violated. To fix the issues, we will use the Box-Cox transformation or log() transformation to the dependent variable(price) and some of the independent variables to remove Heteroscedasticity. We will also remove some outlier to improve Skewness and Kurtosis. By doing all these manipulations, we hope that all the assumptions will be corrected.
+
+`What about assumptions 1,2,5? (-15)`
 
 ## New Model
 

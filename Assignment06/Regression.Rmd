@@ -1,10 +1,22 @@
+---
+title: "Assignment 6"
+author: "Your Name here"
+date: '2022-07-24'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+`Deleted header to document`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r packages}
-install.packages('readr')
+#install.packages('readr')
 
 library(readr)
 library(dplyr)
@@ -19,12 +31,13 @@ We are going to look at the property prices for Orange County. From there we are
 Bring in the data and make sure the data types are correct. If not, make the proper changes. The file is located within this project. *data/prop_prices_reduced.csv*
 
 ```{r}
+# No file exists in this location. Added dataset to location
 
-Property <- read.csv("data/prop_prices_reduced.csv")
+Property <- read.csv("prop_prices_reduced.csv")
 
 #Renaming column sale_def with an intuitive name: price
 
-library(dplyr)
+# library(dplyr) once it is referenced above, you dont need it here
 Property <- rename(Property, price = sale_def)
 
 ```
@@ -49,10 +62,10 @@ hist(dist_lakes)
 hist(pool)
 
 # Scatterplots for the relationships between all quantitative variables
-library(dplyr)
+#library(dplyr)
 PropertyQuant <- select(Property, price, bed, bath, area_heated, area, dist_cbd, dist_lakes)
 
-library(car)
+#library(car)
 scatterplotMatrix(PropertyQuant, main = "Quantitative Variables Scatterplots")
 # or
 pairs(~price + bed + bath + area_heated + dist_cbd + dist_lakes, data = Property, main = "Quantitative Variables Scatterplots")
@@ -95,7 +108,7 @@ As is, are any of the Gauss-Markov assumptions violated? If so, which ones? How 
 
 ```{r}
 
-library(gvlma)
+#library(gvlma)
 Fit_property <- lm(price ~ bed + bath + area + area_heated + dist_cbd + dist_lakes + pool, data = Property)
 
 
@@ -106,9 +119,11 @@ plot(Fit_property)
 gvmodelProperty <- gvlma(Fit_property)
 summary(gvmodelProperty)
 
-# All the Gauss-Markov assumptions (Global Stat, Skewness, Kurtosis, Link Function, Heteroscedasticity) are violated. To fix the issues, we will use the Box-Cox transformation or log() transformation to the dependent variable(price) and some of the independent variables to remove Heteroscedasticity. We will also remove some outlier to improve Skewness and Kurtosis. By doing all these manipulations, we hope that all the assumptions will be corrected.
-
 ```
+
+All the Gauss-Markov assumptions (Global Stat, Skewness, Kurtosis, Link Function, Heteroscedasticity) are violated. To fix the issues, we will use the Box-Cox transformation or log() transformation to the dependent variable(price) and some of the independent variables to remove Heteroscedasticity. We will also remove some outlier to improve Skewness and Kurtosis. By doing all these manipulations, we hope that all the assumptions will be corrected.
+
+`What about Assumption 1, 2, and 5?`
 
 ## New Model
 
@@ -122,13 +137,13 @@ summary(powerTransform(Property$price))
 
 ```{r}
 # log transformation of price
-library(car)
+#library(car)
 Property$logprice =log(Property$price)
 
 
 #Verifying assumptions
 
-library(gvlma)
+#library(gvlma)
 
 Fit_property1 <- lm(logprice ~ bed + bath + area + area_heated + dist_cbd + dist_lakes + pool, data = Property)
 
@@ -141,9 +156,10 @@ plot(Fit_property1)
 # Heteroscedasticity is now acceptable
 ```
 
+Let's do the log transformation of some other variables with skewed distributions to improve them
 
 ```{r}
-# Let's do the log transformation of some other variables with skewed distributions to improve them
+
 Property$logarea= log(Property$area)
 Property$logbath= log(Property$bath)
 Property$logarea_heated = log(Property$area_heated)
@@ -160,12 +176,13 @@ summary(gvmodelProperty2)
 par(mfrow = c(2, 2))
 plot(Fit_property2)
 
-# Now, Skewness assumption is acceptable, R-squared has slightly improved and all the level of significance are the same 
 ```
 
+Now, Skewness assumption is acceptable, R-squared has slightly improved and all the level of significance are the same
+
+Let's remove the outliers visible from the residuals vs fitted plot of Fit_property2 which are the same ones found by the outlier test. This will reduce the disproportionate effect outliers can have on the data and hopefully correct the remaining assumptions
 
 ```{r}
-# Let's remove the outliers visible from the residuals vs fitted plot of Fit_property2 which are the same ones found by the outlier test. This will reduce the disproportionate effect outliers can have on the data and hopefully correct the remaining assumptions
 
 library(car)
 outlierTest(Fit_property2)
@@ -216,8 +233,9 @@ plot(Fit_property4)
 ```
 
 
-Conclusion: After several attempts and manipulations to correct the different violations, it looks like there is an issue with the data collection  that might be responsible for the spikes. Therefore, regardless of the transformation, we will not be able to eliminate all the violations. Nonetheless, even though, the distributions are still not normal, the different manipulations have improved the data set.
+Conclusion: After several attempts and manipulations to correct the different violations, `it looks like there is an issue with the data collection` that might be responsible for the spikes. Therefore, regardless of the transformation, we will not be able to eliminate all the violations. Nonetheless, even though, the distributions are still not normal, the different manipulations have improved the data set.
 
+`Not necessarily. The data may need to be manipulated a different way.`
 
 # Prediction
 
@@ -246,3 +264,4 @@ predict(Fit_property, newproperty)
 
 The deflated sales price $100339.2
 
+`Why didn't you use one of the better models you created?`
