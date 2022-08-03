@@ -19,6 +19,7 @@ library(rpart.plot)
 library(party)
 library(randomForest)
 library(e1071)
+library(tidyverse)
 ```
                                     
                                                      Part A: Data Collection and rearrangement
@@ -44,7 +45,7 @@ mortgage [mortgage == 999999] <- NA
 library(dplyr)
 mortgage <- rename(mortgage, "Deny_Approve" = "s7", "Loan_amount" = "s6" , "Race" = "s13" , "No_dependents" =  "s24a", "Years_employed" = "s25a" , "Liquid_assets"= "s35", "ExpensesIncome" = "s45", "ObligationsIncome" = "s46", "Self_employed" = "s27a", "Marital_status" = "s23a", "Education" = "school", "Income" = "s17", "Net_worth" =  "netw", "Unemployed_Prob" = "uria", "MTG_credit_hist" = "s42", "Consum_credit_hist" = "s43", "Appraised_value"="s50")
 
-View(mortgage)
+#View(mortgage)
 ```
 
 #Initial Choice of variables
@@ -105,8 +106,7 @@ cor(na.omit(QuantitativeSample))
 ```
 
 ##Testing the hypotheses through Correlation: Results
-
-Some interesting Correlation between variables testing the hypotheses
+Some interesting Correlations were used to test the hypotheses.
 
 H1 Result: Corr = 0.72674. As predicted, there is a positive relationship between the variables and it is quite strong. High loan amounts should be backed by an appropriate appraisal value.
 
@@ -143,32 +143,31 @@ The summary statistics shows that there are 2095 applications approved and 285 a
 
 This will provide  more insightful scatterplots and histograms.
 
-The new selection contains the most relevant variables to the mortgage application approval/denial process and it is based on the results of the studies provided in the paper. This new selection will facilitate suggestions for transforming variables in the logistic regression as well as a better visualizations of scatterplots and histograms. The result of the different analysis performed on the HMDA Data, suggests that the net wealth coefficient and the number of dependents had no significant effect on the mortgage lending decision (pg.35 and pg.38). On the other hand, the level of education and years on the job were generally statistically significant.Liquid assets also do not appear to affect the probability of denial. Moreover employment risk has no significant effect on the estimated effect of race in the mortgage lending decision( pg.39).
+The new selection contains the most relevant variables to the mortgage application approval/denial process and it is based on the results of the studies provided in the paper. This new selection will facilitate suggestions for transforming variables in the logistic regression as well as a better visualizations of scatterplots and histograms. The result of the different analysis performed on the HMDA Data, suggests that the net wealth coefficient and the number of dependents had no significant effect on the mortgage lending decision (pg.35 and pg.38). On the other hand, the level of education and years on the job were generally statistically significant.Liquid assets also do not appear to affect the probability of denial. Moreover employment risk has no significant effect on the estimated effect of race in the mortgage lending decision( pg.39).Additionally, houses' appraised value and the loan amount do not seem to play significant roles in the lending process. Altogether, the quantitative variables left are Loan_amount, ExpensesIncome, ObligationsIncome, Education, Income, Years_employed and they will constitute the the new set of quantitative variables. 
 
-## The new sample selection
+##The new sample selection
 ```{r}
-NewQuantitativeSample <- select(QuantitativeSample, Loan_amount, ExpensesIncome, ObligationsIncome, Education, Income, Years_employed)
+NewQuantitativeSample <- select(QuantitativeSample, ExpensesIncome, ObligationsIncome, Education, Income, Years_employed)
 ```
 
-# Histograms for quantitative variables from new sample
+#Histograms for quantitative variables from new sample
 ```{r}
 attach(NewQuantitativeSample)
 par(mfrow = c(2, 3))
 
-hist(Loan_amount)
-hist(Appraised_value)
 hist(ExpensesIncome)
 hist(ObligationsIncome)
 hist(Education)
 hist(Income)
+hist(Years_employed)
 ```
-#Discussion
+Except for the level of education, all of the quantitative variables in the new sample seem to present sightly right skewed distributions. This tells that the mean is typically less than the median which is closer to the third quarterly than to the first quartile. For each one, we can see what are the most common values and the range within which most applicants fall into. There is no outlier observable.  
 
-# Scatterplots
+#Scatterplots
 ```{r}
 scatterplotMatrix(NewQuantitativeSample, main = "Quantitative Variables Scatterplots")
 ```
-# Explanation
+The scatterplots show the trend between the data and depict the relationship between variables. This can help test some of the hypotheses presented earlier. For most of them, points are clustered and form a curve or line. We can imply that there is moderate to strong relationship between the variables and we have linear and non linear relationships.
 
 #Barcharts for qualitative variables
 
@@ -192,25 +191,22 @@ Consum_credit_hist <- table(SampleStatistics$Consum_credit_hist)
 barplot(Consum_credit_hist, main = "Credit history - consumer payments", col = c("darkgreen","darkblue","purple","Yellow","orange","red"), legend =rownames(Consum_credit_hist))  
 
 ```
-# Discussion 
+The barcharts constitute a great way to visualize the qualitative variables from the sample. Each one shows the different categories within the variables and  their spread. This helps knowing exactly how many applicants fall into each category.
 
 
-```{r}
-
-
-```
-
+Overall, the plots, histograms, and barcharts provide a great visualization of the data that help determine the necessary transformation for modeling. 
 
                                           Part C: logistic regression model, the ROC curve and the AUC 
 
 #Logistic regression model    
 ```{r}
+Reg.Sample <- select(SampleStatistics, Deny_Approve, Race, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education)
+
 set.seed(1234)
+Train <- sample(nrow(Reg.Sample), 0.7*nrow(Reg.Sample))
 
-Train <- sample(nrow(SampleRegression), 0.7*nrow(SampleRegression))
-
-dataTrain <- SampleRegression[Train,]
-dataValidate <- SampleRegression[-Train,]
+dataTrain <- Reg.Sample[Train,]
+dataValidate <- Reg.Sample[-Train,]
  
 SampleRegression <- select(dataTrain, Deny_Approve, Race, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education)
 
@@ -221,8 +217,9 @@ FitSampleRegression <- glm(Deny_Approve ~ ObligationsIncome + ExpensesIncome + R
 summary(FitSampleRegression)
 ```
 #Discussion
+form this model, we observe that at the 95% level, Obligations over income, race, self-employment, marital status and the level of education are tested significant. The positive 
 
-
+Compare coefficient to hypothesized values 
 
 #ROC Curve
 ```{r}
@@ -243,14 +240,15 @@ as.numeric(threshold)
 set.seed(1234)
 
 dtree <- rpart(Deny_Approve  ~ ., data = dataTrain, method = 'class' ) 
-prp(dtree, type = 2, extra = 104,fallen.leaves = T)
+prp(dtree, type = 2, extra = 104, fallen.leaves = T)
 
 ```
+#Explanation.........
 
 ####Prediction and Performance: Classical Decision Trees
 ```{r}
 dtree.pred <- predict(dtree, dataTrain, type = "class")
-  dtree.perf <- table(dataTrain$Deny_Approve, dtree.pred, dnn = c("Actual","Predicted"))
+dtree.perf <- table(dataTrain$Deny_Approve, dtree.pred, dnn = c("Actual","Predicted"))
 dtree.perf
 ```
 
@@ -266,8 +264,10 @@ ctree.pred <- predict(fit.ctree, dataTrain, type = 'response')
 ctree.perf <- table(dataTrain$Deny_Approve, ctree.pred, dnn = c("Actual","Predicted"))
 ctree.perf
 ```
+#Explanation.........
 
-# The confusion matrix at alternative cut-off levels, 
+
+#The confusion matrix at alternative cut-off levels, 
 ##Confusion matrix 1
 ```{r}
 prob <- predict(FitSampleRegression, dataValidate, type = 'response')
@@ -331,89 +331,151 @@ performance(dtree.perf)
 performance(ctree.perf)
 ```
 #Explanation
+The performance analysis shows that 
+
                                                   Part D: Cross validation
                                                   
-The Cross validation will be excecuted with the same variables used in the logistic Regression.
+The Cross validation will be executed with the same variables used in the logistic Regression.
 ```{r}
-sampleCv <-select(SampleRegression,.)                           
+sampleCv <-select(SampleRegression, Deny_Approve, Race, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education)                           
 
 ```
 
-##Creating new columns and reassigning numerical labels to variables
+#Creating new columns and reassigning numerical labels to variables
+##Model: Reducing the model: creating an 
+Before performing 10-fold cross validation, a new data set will be created containing new columns where numerical labels will be assigned to categorical data.
 ```{r}
 #New columns
-sampleCv$Married = sampleCv$Marital_Status
-sampleCv$Unmarried = sampleCv$Marital_Status
-sampleCv$Separated = sampleCv$Marital_Status
+sampleCv$Married = sampleCv$Marital_status
+sampleCv$Unmarried = sampleCv$Marital_status
+sampleCv$Separated = sampleCv$Marital_status
+
+#Dropping marital status column
+sampleCv <- subset(sampleCv, select= -Marital_status)
 
 #reassigning numerical labels
-sampleCv$Deny_Approve <- factor(sampleCv$Deny_Approve,levels = c("Approve","Deny"), labels = c(1,0))
-sampleCv$Race <- factor(sampleCv$Race,levels = c("White","Black"), labels = c(1,0))
-sampleCv$Married <- factor(sampleCv$Married,levels = c("Married","Unmarried","separated"), labels = c(1,0,0))
-sampleCv$Unmarried <- factor(sampleCv$Unmarried,levels = c("Married","Unmarried","separated"), labels = c(0,1,0))
-sampleCv$Separated <- factor(sampleCv$Separated,levels = c("Married","Unmarried","separated"), labels = c(0,0,1))
-sampleCv$Self_employed <- factor(sampleCv$Self_employed, levels = c("Yes","No"), labels = c(1,0))
+sampleCv$Deny_Approve <- as.numeric(sampleCv$Deny_Approve,levels = c("Approve","Deny"), labels = c(1,0))
+sampleCv$Race <- as.numeric(sampleCv$Race,levels = c("White","Black"), labels = c(1,0))
+sampleCv$Married <- as.numeric(sampleCv$Married,levels = c("Married", "Unmarried", "separated"), labels = c(1, 0, 0))
+sampleCv$Unmarried <- as.numeric(sampleCv$Unmarried,levels = c("Married", "Unmarried", "separated"), labels = c(0, 1, 0))
+sampleCv$Separated <- as.numeric(sampleCv$Separated,levels = c("Married", "Unmarried", "separated"), labels = c(0, 0, 1))
+sampleCv$Self_employed <- as.numeric(sampleCv$Self_employed, levels = c("Yes","No"), labels = c(1,0))
 
 View(sampleCv)
 ``` 
 
-## Cross Validation on train data
+#Differents Logistic regression models using 10-fold cross validation
+##
 ```{r}
-
-sampleCv1 <-select(sampleCv, Deny_Approve, Race, ExpensesIncome, ObligationsIncome, Married, Unmarried, Separated, Education) 
-
+#Creating an interaction variable
 #Generating dependent variable
-y <- sampleCv1$Deny_Approve
+y <- sampleCv$Deny_Approve
 
 #Generate Independent Variables
 library(Matrix)
 library(dplyr)
-xVar <- subset(sampleCv1, select = -c(Deny_Approve))
+xVar <- na.omit(subset(sampleCv, select = -c(Deny_Approve)))
 
 x <- as.matrix(xVar)
-  
+
 library(gamlr)
-cv.reg <- gamlr(x, y, verb=TRUE,family="binomial", nfold =10, standardize=FALSE)
+cv.reg <- gamlr(x, y, verb=TRUE, family="binomial", nfold =10)
 
 summary(cv.reg)
 plot(cv.reg)
 
 ```
-
 #Explanation
 
+```{r}
 
-# Random Forests
+```
+
+##Model 2
+```{r}
+
+```
+
+##Model 3
+```{r}
+
+```
+
+
+#Classification methods
+##Random Forests
 
 ```{r}
 set.seed(1234)
 
-fit.forest <- randomForest(Deny_Approved ~., data = dataTrain, na.action=na.roughfix, importance = TRUE)
+fit.forest <- randomForest(Deny_Approve ~., data = dataTrain, na.action=na.roughfix, importance = TRUE)
 
 fit.forest
 ```
+###Prediction and Performance: Random Forests
+```{r}
+forest.pred <- predict(fit.forest, dataValidate)
 
-#Support Vector Machines
+forest.perf <- table(dataValidate$Deny_Approve, forest.pred, dnn = c("Actual","Predicted"))
 
+forest.perf
+```
+
+A summary of the variable importance
+```{r}
+importance(fit.forest,type = 2)
+```
+#Explanation.........
+
+
+
+##Support Vector Machines
 ```{r}
 set.seed(1234)
 
-fit.svm <- svm(Deny_Approved ~., data = dataTrain)
+fit.svm <- svm(Deny_Approve ~., data = dataTrain)
 
 fit.svm
-```                                                      
-                                                
-                                                     Part E: Superior Logistic Regression Model
-                                                      
+```       
+###Prediction and Performance: Support Vector Machines
 ```{r}
-Performance mesures
+svm.pred <- predict(fit.svm, na.omit(dataValidate))
+svm.perf <- table(na.omit(dataValidate)$Deny_Approve, svm.pred, dnn = c("Actual","Predicted"))
 
-
-```
-
-
-```{r}
-performance(forest.perf)
 performance(svm.perf)
+```
+#Explanation.........
+
+
+
+                                            Part E: Superior Logistic Regression Model
+#Identification superior logistic regression model                                             
+For classification purposes, the Superior Logistic Regression Model is the.....  
+
+#Graph the ROC, calculate the AUC, threhold
+```{r}
+
+
 
 ```
+
+#The confusion matrix at the threshold level associated with the minimum average test misclassification rate
+```{r}
+
+
+```
+
+#Performance measures
+```{r}
+
+
+```
+
+#Comparing superior logistic regression model with Part C logistic regression model
+                                                         
+                                                         
+                                                         Conclusion
+
+The goal of this project is to builda mortgage application approval/denial classifier where the probability that an applicant will be approved or denied is a function observable......     
+                                                          
+                                                          
