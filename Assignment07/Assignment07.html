@@ -19,11 +19,13 @@ library(MASS)
 
 
 # Importing Data 
+
 ```{r}
 library(dplyr)
 Property <- read.csv("data/prop_prices_reduced.csv")
 
 #Renaming column sale_def with an intuitive name: price
+
 Property <- rename(Property, price = sale_def)
 
 library(car)
@@ -40,6 +42,7 @@ Property1 <- select(Property,logprice, bed, logbath, area, logarea_heated, dist_
 ```
 
 # Separate data into testing and training
+
 ```{r}
 set.seed(1234)
 data = sort(sample(nrow(Property1), nrow(Property1)*.9))
@@ -51,7 +54,9 @@ test<-Property1[-data,]
 ```
 
 # Run previous final model to the training data
+
 ```{r}
+
 library(gvlma)
 Fit_train <- lm(logprice ~ bed + logbath + area + logarea_heated + dist_cbd + logDist_lakes + pool, data = train)
 
@@ -90,6 +95,7 @@ cv.LASSOmodel <- cv.gamlr(x, y, verb=TRUE,nfold =10)
 
 ```
 # Plotting Results
+
 ```{r}
 par(mfrow=c(1,2))
 plot(cv.LASSOmodel)
@@ -102,7 +108,6 @@ library(Metrics)
 
 Predicted <- predict(Fit_train, test) 
 Actuals <- test$logprice
-RSME <- rmse(Actuals, Predicted) 
 
 
 LassoPredict1 <- predict(LASSOmodel, test[-c(1)], select=which.min(AICc(LASSOmodel)))  
@@ -125,26 +130,16 @@ CVPredict2 <- predict (cv.LASSOmodel, test[-c(1)], select = "1se")
 CVPredict2 <- as.matrix(CVPredict2) 
 CV.1sermse <- rmse(Actuals, CVPredict2)
                                                                                                                                                                                                                                                                   
-RSME
 Lasso.aiccrmse 
 Lasso.aicrmse 
 Lasso.bicrmse 
 CV.minrmse 
-CV.1sermse                                                                                                                       
+CV.1sermse
 ```
+# 0.275082
+# 0.275082
+# 0.275082
+# 0.275082
+# 0.2817059
 
-```{r}
-ll <- log(LASSOmodel$lambda)
-par(mfrow=c(1,1))
-plot(LASSOmodel, col="grey", xlim=c(-6,-1), ylim=c(0,2))
-abline(v=ll[which.min(AICc(LASSOmodel))], col="black", lty=2, lwd=2)
-abline(v=ll[which.min(AIC(LASSOmodel))], col="orange", lty=2, lwd=2)
-abline(v=ll[which.min(BIC(LASSOmodel))], col="green", lty=2, lwd=2)
-abline(v=log(cv.LASSOmodel$lambda.min), col="blue", lty=2, lwd=2)
-abline(v=log(cv.LASSOmodel$lambda.1se), col="purple", lty=2, lwd=2)
-legend("topright", bty="n", lwd=2, 
-col=c("black","orange","green","blue","purple"),
-	legend=c("AICc","AIC","BIC","CV.min","CV.1se"))
-```
-
-In general,the lower the RMSE, the more closely a model can predict the actual observations. In our case, e method that gives the best in prediction the home price is the cv.1se method
+From the result, we observe that AICC, AIC, BIC, and cv min all have the same RMSE which is 0.275082 and that the highest RSME is from cv 1ersme method which is 0.281705. In general,the lower the RMSE, the more closely a model can predict the actual observations. In our case, the methods that give the best prediction of the home price are AICC, AIC, BIC, and cv min methods with RMSE.Either of them will provide a good prediction.
