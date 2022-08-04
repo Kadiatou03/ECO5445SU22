@@ -1,0 +1,150 @@
+---
+title: "Assignment 07"
+output: html_document
+date: '2022-07-26'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+library(dplyr)
+library(car)
+library(gvlma)
+library(gamlr)
+library(car)
+library(MASS)
+```
+
+
+# Importing Data 
+```{r}
+library(dplyr)
+Property <- read.csv("data/prop_prices_reduced.csv")
+
+#Renaming column sale_def with an intuitive name: price
+Property <- rename(Property, price = sale_def)
+
+library(car)
+Property$logprice =log(Property$price)
+Property$logarea= log(Property$area)
+Property$logbath= log(Property$bath)
+Property$logarea_heated = log(Property$area_heated)
+Property$logDist_lakes = log(Property$dist_lakes)
+
+#Data used in model
+library(dplyr)
+Property1 <- select(Property,logprice, bed, logbath, area, logarea_heated, dist_cbd, logDist_lakes, pool)
+
+```
+
+# Separate data into testing and training
+```{r}
+set.seed(1234)
+data = sort(sample(nrow(Property1), nrow(Property1)*.9))
+
+#creating training data set by selecting the output row values
+train<-Property1[data,]
+#creating test data set by not selecting the output row values
+test<-Property1[-data,]
+```
+
+# Run previous final model to the training data
+```{r}
+library(gvlma)
+Fit_train <- lm(logprice ~ bed + logbath + area + logarea_heated + dist_cbd + logDist_lakes + pool, data = train)
+
+gvmodeltrain<- gvlma(Fit_train)
+summary(gvmodeltrain)
+
+par(mfrow = c(2, 2))
+plot(Fit_train)
+```
+
+# Run the standard LASSO regression model on the training data.
+```{r}
+# Generating dependent variable
+y <- train$logprice
+
+# Generate Independent Variables
+library(Matrix)
+library(dplyr)
+xVar <- subset(train, select = -c(logprice))
+
+x <- as.matrix(xVar)
+  
+
+library(gamlr)
+LASSOmodel <- gamlr(x, y,family=c("gaussian"),nlambda=100, lambda.start=Inf,lambda.min.ratio=0.01)
+
+summary(LASSOmodel)
+plot(LASSOmodel)
+
+
+```
+
+# Run a 10-fold cross-validated LASSO on the training data
+```{r}
+cv.LASSOmodel <- cv.gamlr(x, y, verb=TRUE,nfold =10)
+
+```
+# Plotting Results
+```{r}
+par(mfrow=c(1,2))
+plot(cv.LASSOmodel)
+plot(cv.LASSOmodel$gamlr) 
+```
+
+# Calculation RSME for each of the lambda's selection methods (AIC, BIC, AICc, cv.min, cv.1se)
+```{r}
+library(Metrics)
+
+Predicted <- predict(Fit_train, test) 
+Actuals <- test$logprice
+RSME <- rmse(Actuals, Predicted) 
+
+
+LassoPredict1 <- predict(LASSOmodel, test[-c(1)], select=which.min(AICc(LASSOmodel)))  
+LassoPredict1 <- as.matrix(LassoPredict1) 
+Lasso.aiccrmse <- rmse(Actuals, LassoPredict1)
+
+LassoPredict2 <- predict (LASSOmodel, test[-c(1)], select=which.min (AIC(LASSOmodel)))  
+LassoPredict2<- as.matrix(LassoPredict2) 
+Lasso.aicrmse <- rmse(Actuals, LassoPredict2) 
+
+LassoPredict3 <- predict (LASSOmodel, test[-c(1)], select=which.min (BIC(LASSOmodel))) 
+LassoPredict3 <- as.matrix(LassoPredict3) 
+Lasso.bicrmse <- rmse(Actuals, LassoPredict3) 
+
+CVPredict1 <- predict (cv.LASSOmodel, test[-c(1)], select ="min")
+CVPredict1 <- as.matrix(CVPredict1) 
+CV.minrmse <- rmse(Actuals, CVPredict1) 
+
+CVPredict2 <- predict (cv.LASSOmodel, test[-c(1)], select = "1se") 
+CVPredict2 <- as.matrix(CVPredict2) 
+CV.1sermse <- rmse(Actuals, CVPredict2)
+                                                                                                                                                                                                                                                                  
+RSME
+Lasso.aiccrmse 
+Lasso.aicrmse 
+Lasso.bicrmse 
+CV.minrmse 
+CV.1sermse                                                                                                                       
+```
+
+```{r}
+ll <- log(LASSOmodel$lambda)
+par(mfrow=c(1,1))
+plot(LASSOmodel, col="grey", xlim=c(-6,-1), ylim=c(0,2))
+abline(v=ll[which.min(AICc(LASSOmodel))], col="black", lty=2, lwd=2)
+abline(v=ll[which.min(AIC(LASSOmodel))], col="orange", lty=2, lwd=2)
+abline(v=ll[which.min(BIC(LASSOmodel))], col="green", lty=2, lwd=2)
+abline(v=log(cv.LASSOmodel$lambda.min), col="blue", lty=2, lwd=2)
+abline(v=log(cv.LASSOmodel$lambda.1se), col="purple", lty=2, lwd=2)
+legend("topright", bty="n", lwd=2, 
+col=c("black","orange","green","blue","purple"),
+	legend=c("AICc","AIC","BIC","CV.min","CV.1se"))
+```
+
+In general,the lower the RMSE, the more closely a model can predict the actual observations. In our case, e method that gives the best in prediction the home price is the cv.1se method
