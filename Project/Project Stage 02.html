@@ -14,6 +14,7 @@ library(Matrix)
 library(dplyr)
 library(car)
 library(gamlr)
+library(boot)
 library(pROC)
 library(rpart)
 library(rpart.plot)
@@ -315,10 +316,11 @@ The performance analysis shows that .....
                                                   
 The Cross validation will be executed with the same variables used in the logistic Regression.
 ```{r}
-sampleCv <-select(SampleRegression, Deny_Approve, Race, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education)                           
+sampleCv <-select(SampleStatistics, Deny_Approve, Race, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education)
+
 
 ```
-Before performing 10-fold cross validation, a new data set will be created containing new columns where numerical labels will be assigned to categorical data.
+Before performing 10-fold cross validation, a new data set will be created containing new columns where numerical labels will be assigned to categorical data. We will also create a train and validate data from the sample.
 
 # Preparing the data for Cross validation 
 ```{r}
@@ -338,43 +340,117 @@ sampleCv$Unmarried <- ifelse(sampleCv$Unmarried  == 'Unmarried',1, 0)
 sampleCv$Separated <- ifelse(sampleCv$Separated  == 'Separated',1, 0)
 sampleCv$Self_employed <- ifelse(sampleCv$Self_employed  == 'yes',1, 0)
 
+# Separating the data
+set.seed(1234)
+Train.cv <- sample(nrow(sampleCv), 0.7*nrow(sampleCv))
+
+dataTrain.cv <- sampleCv[Train.cv,]
+dataValidate.cv <- sampleCv[-Train.cv,]
+na.omit(sampleCv)
+
 View(sampleCv)
 ``` 
 
 
-#Differents Logistic regression models using 10-fold cross validation
-##Model 1 with interaction variables(Race and obligation over income)
-```{r}
-cv1<- glm(Deny_Approve ~ ObligationsIncome*Race + ExpensesIncome + Self_employed + Married + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
 
+# Differents Logistic regression models using 10-fold cross validation
+
+## Model 1 with interaction variables(Race and obligation over income)
+```{r}
+cv1<- glm(Deny_Approve ~ I(ObligationsIncome*Race) + ExpensesIncome + Self_employed + Married + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+
+cv1.10 <- cv.glm(sampleCv, cv1, K = 10)
+cv1.10
 summary(cv1)
 ```
 #Explanation
 
 
 
-##Model 2 with interaction variables(self-employed and obligation over income)
+
 ```{r}
-sampleCv$logObligationIncome =log(sampleCv$ObligationIncome)
+prob.cv <- predict(cv1, dataValidate.cv, type = 'response')
+my_roc.cv1 <- roc(dataValidate.cv$Deny_Approve ~ prob)
+threshold.cv1 <-coords(my_roc.cv1, "best", ret = "threshold")
+
+threshold.cv1 = as.numeric(threshold.cv1)
+```
+
+```{r}
+prob.cv <- predict(cv1, dataValidate.cv, type = 'response')
+logit.pred.cv1 <- factor(prob.cv > threshold.cv1, levels = c(FALSE,TRUE),
+                     labels = c("Approve","Deny"))
+
+logit.perf.cv1 <- table(dataValidate.cv$Deny_Approve, logit.pred.cv1, dnn = c("Actual","Predicted"))
+
+logit.perf.cv1
+```
+
+## Model 2 with interaction variables(self-employed and obligation overincome)
+```{r}
+cv2<- glm(Deny_Approve ~ I(ObligationsIncome*Self_employed) + Race + ExpensesIncome + Married + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+
+cv2.10 <- cv.glm(sampleCv, cv2, K = 10)
+cv2.10
+summary(cv2)
+```
+explanation
+
+
+```{r}
+prob.cv <- predict(cv2, dataValidate.cv, type = 'response')
+my_roc.cv2 <- roc(dataValidate.cv$Deny_Approve ~ prob)
+threshold.cv2 <-coords(my_roc.cv2, "best", ret = "threshold")
+
+threshold.cv2 = as.numeric(threshold.cv2)
+```
+
+```{r}
+
+logit.pred.cv2 <- factor(prob.cv > 0.5, levels = c(FALSE,TRUE),
+                     labels = c("Approve","Deny"))
+
+logit.perf.cv2 <- table(dataValidate.cv$Deny_Approve, logit.pred.cv1, dnn = c("Actual","Predicted"))
+
+logit.perf.cv2
+```
+
+## Model 3 with log transformations
+```{r}
+sampleCv$logObligationsIncome =log(sampleCv$ObligationsIncome)
 sampleCv$logExpensesIncome =log(sampleCv$ExpensesIncome)
 
-Property$logprice =log(Property$price)
-cv2<- glm(Deny_Approve ~ logObligationsIncome + ExpensesIncome + Race + Self_employed + Married + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+sampleCv [sampleCv == -Inf] <- NA
 
+cv2<- na.omit(glm(Deny_Approve ~ logObligationsIncome + logExpensesIncome + Race + Self_employed + Married + Unmarried + Separated + Education, data = sampleCv, family = "binomial"))
+
+cv3.10 <- cv.glm(sampleCv, cv3, K = 10)
+cv3.10
+summary(cv3)
 
 ```
 #Explanation
 
+```{r}
+prob.cv <- predict(cv3, dataValidate.cv, type = 'response')
+logit.pred.cv3 <- factor(prob.cv > 0.5, levels = c(FALSE,TRUE),
+                     labels = c("Approve","Deny"))
+
+logit.perf.cv3 <- table(dataValidate.cv$Deny_Approve, logit.pred.cv3, dnn = c("Actual","Predicted"))
+
+logit.perf.cv3
+```
+
+##Model 4
+```{r}
+cv3<- glm(Deny_Approve ~ poly(ObligationsIncome, 2, raw = TRUE) + poly(ExpensesIncome, 2, raw = TRUE) + Race + Self_employed + Married + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+
+summary(cv3)
+```
+#Explanation
 
 
 ##Model 3
-```{r}
-
-```
-#Explanation
-
-
-
 ```{r}
 
 
@@ -451,6 +527,7 @@ fit.svm <- svm(Deny_Approve ~., data = dataTrain)
 
 fit.svm
 ```       
+
 ###Prediction and Performance: Support Vector Machines
 ```{r}
 svm.pred <- predict(fit.svm, na.omit(dataValidate))
@@ -462,20 +539,36 @@ performance(svm.perf)
 
 
 
-                                            Part E: Superior Logistic Regression Model
-#Identification superior logistic regression model                                             
+#                                            Part E: Superior Logistic Regression Model
+                                            
+#Identification superior logistic regression model  
+```{r}
+
+
+performance(svm.perf)
+```
+
 For classification purposes, the Superior Logistic Regression Model is the.....  
 
 #Graph the ROC, calculate the AUC, threhold
 ```{r}
+prob.cv <- predict(cv2, dataValidate.cv, type = 'response')
+my_roc.cv2 <- roc(dataValidate.cv$Deny_Approve ~ prob,  plot = TRUE, print.auc=TRUE)
+threshold.cv2 <-coords(my_roc.cv2, "best", ret = "threshold")
 
+threshold.cv2 = as.numeric(threshold.cv2)
 
 
 ```
 
 #The confusion matrix at the threshold level associated with the minimum average test misclassification rate
 ```{r}
+logit.pred.cv2 <- factor(prob.cv > 0.5, levels = c(FALSE,TRUE),
+                     labels = c("Approve","Deny"))
 
+logit.perf.cv2 <- table(dataValidate.cv$Deny_Approve, logit.pred.cv1, dnn = c("Actual","Predicted"))
+
+logit.perf.cv2
 
 ```
 
@@ -483,7 +576,7 @@ For classification purposes, the Superior Logistic Regression Model is the.....
 
 #Performance measures
 ```{r}
-
+performance(logit.perf.cv3)
 ```
 
 #Comparing superior logistic regression model with Part C logistic regression model
