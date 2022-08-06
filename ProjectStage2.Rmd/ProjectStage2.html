@@ -5,12 +5,10 @@ date: '2022-07-25'
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
 ```{r}
-warning = FALSE
-message = FALSE
 
 library(readr)
 library(Matrix)
@@ -50,8 +48,6 @@ mortgage [mortgage == 999999] <- NA
 ```{r}
 library(dplyr)
 mortgage <- rename(mortgage, "Deny_Approve" = "s7", "Loan_amount" = "s6" , "Race" = "s13" , "No_dependents" =  "s24a", "Years_employed" = "s25a" , "Liquid_assets"= "s35", "ExpensesIncome" = "s45", "ObligationsIncome" = "s46", "Self_employed" = "s27a", "Marital_status" = "s23a", "Education" = "school", "Income" = "s17", "Net_worth" =  "netw", "Unemployed_Prob" = "uria", "MTG_credit_hist" = "s42", "Consum_credit_hist" = "s43", "Appraised_value"="s50")
-
-#View(mortgage)
 ```
 
 # Initial Choice of variables
@@ -80,9 +76,6 @@ SampleStatistics$Marital_status <- factor(SampleStatistics$Marital_status ,level
 SampleStatistics$Self_employed <- factor(SampleStatistics$Self_employed, levels = c(0,1), labels = c("No", "Yes"))
 SampleStatistics$MTG_credit_hist <- factor(SampleStatistics$MTG_credit_hist, levels = c(1,2,3,3), labels = c("Excellent","No record","Fair", "bad"))
 SampleStatistics$Consum_credit_hist <- factor(SampleStatistics$Consum_credit_hist, levels = c(1,2,3,4,5,6), labels = c("Excellent", "good", "fair", "Insufficient record", "bad", "Serious"))
-
-
-#View(SampleStatistics)
 ```
 
 ## Hypotheses
@@ -109,6 +102,8 @@ The new selection contains the most relevant variables to the mortgage applicati
 ## The new sample selection of Quantitavive variables
 
 ```{r}
+QuantitativeSample <- select(mortgage, Loan_amount, No_dependents, Years_employed, ExpensesIncome, ObligationsIncome, Education, Unemployed_Prob, Income, Liquid_assets, Net_worth, Appraised_value)
+
 NewQuantitativeSample <- select(QuantitativeSample, ExpensesIncome, ObligationsIncome, Education, Income, Years_employed)
 ```
                                      
@@ -196,6 +191,7 @@ Except for the level of education, all of the quantitative variables in the new 
 library(car)
 scatterplotMatrix(NewQuantitativeSample, main = "Quantitative Variables Scatterplots")
 ```
+
 The scatterplots show the trend between the data and depict the relationship between variables. This can help test some of the hypotheses presented earlier. For most of them, points are clustered and form a curve or line. We can imply that there is moderate to strong relationship between the variables and we have linear and non linear relationships.
 
 # Barcharts for qualitative variables
@@ -223,7 +219,7 @@ barplot(Consum_credit_hist, main = "Credit history - consumer payments", col = c
 The barcharts constitute a great way to visualize the qualitative variables from the sample. Each one shows the different categories within the variables and  their spread. This helps knowing exactly how many applicants fall into each category.
 
 # Transformation needed
-Overall, the plots, histograms, and barcharts provide a great visualization of the data which will help determine the necessary transformation for modeling. This will include the log transformation of the two debt ratios and the creation of interaction variables such as Race and obligation over income, self-employed and obligation over income. 
+Overall, the plots, histograms, and barcharts provide a great visualization of the data which will help determine the necessary transformation for modeling. This could include log and polynomial transformations of the two debt ratios and the creation of interaction variables such as Race and obligation over income, expenses over income  and obligation over income. 
 
 #                                  Part C: logistic regression model, the ROC curve and the AUC 
 
@@ -266,8 +262,10 @@ as.numeric(threshold)
 ```
 The threshold that maximizes the sensitivity and specificity is 0.8881954
 
-# The confusion matrix at alternative cut-off levels,
+# The confusion matrix at alternative cut-off levels
+
 ## Confusion matrix 1
+
 ```{r}
 prob <- predict(FitSampleRegression, dataValidate, type = 'response')
 
@@ -329,7 +327,7 @@ performance(logit.perf)
 performance(logit.perf.thres)
 ```
 
-The performance analysis shows that at a cut-off level of 0.5, the prediction accuracy is 12.19%. There is a 94.05% probability that proportion of applicants are correctly identified as approved and there is 1.28% probability that are correctly identified by as denied.
+The performance analysis shows that at a cut-off level of 0.5, the prediction accuracy is 12.19%. According the model, there is a 94.05% probability that proportion of applicants are correctly identified as approved and there is 1.28% probability that are correctly identified by as denied.
 
 On the other hand, at the threshold cut-off level, the prediction accuracy is at 30.51%. There is 47.62% probability that proportion of applicants are correctly identified as approved and there is 28.21% probability that applicants are correctly identified by as denied.
 
@@ -339,12 +337,11 @@ The Cross validation will be executed with the same variables used in the logist
 ```{r}
 sampleCv <-select(SampleStatistics, Deny_Approve, Race, ExpensesIncome, ObligationsIncome, Self_employed, Marital_status, Education)
 ```
-Before performing 10-fold cross validation, a new data set will be created containing new columns where numerical labels will be assigned to categorical data. We will also create a train and validate data from the sample.
+Before performing 10-fold cross validation, a new data set will be created containing new columns where numerical labels will be assigned to categorical data creating dummy variables. We will also create a train and validate data from the sample.
 
 # Preparing the data for Cross validation 
 ```{r}
 #New columns
-sampleCv$Married = sampleCv$Marital_status
 sampleCv$Unmarried = sampleCv$Marital_status
 sampleCv$Separated = sampleCv$Marital_status
 
@@ -354,7 +351,6 @@ sampleCv <- subset(sampleCv, select= -Marital_status)
 #reassigning numerical labels
 sampleCv$Deny_Approve <- ifelse(sampleCv$Deny_Approve == 'Approve',1,0)
 sampleCv$Race <- ifelse(sampleCv$Race == 'White',1, 0) 
-sampleCv$Married  <- ifelse(sampleCv$Married  == 'Married',1, 0) 
 sampleCv$Unmarried <- ifelse(sampleCv$Unmarried  == 'Unmarried',1, 0) 
 sampleCv$Separated <- ifelse(sampleCv$Separated  == 'Separated',1, 0)
 sampleCv$Self_employed <- ifelse(sampleCv$Self_employed  == 'yes',1, 0)
@@ -365,32 +361,105 @@ Train.cv <- sample(nrow(sampleCv), 0.7*nrow(sampleCv))
 
 dataTrain.cv <- sampleCv[Train.cv,]
 dataValidate.cv <- sampleCv[-Train.cv,]
-na.omit(sampleCv)
-
-View(sampleCv)
+sampleCv <- na.roughfix(sampleCv)
 ``` 
-
 
 
 # Differents Logistic regression models using 10-fold cross validation
 
-## Model 1 with interaction variables(Race and obligation over income)
+## Model 1 with polynomial transformation
 ```{r}
-cv1<- glm(Deny_Approve ~ I(ObligationsIncome*Race) + ExpensesIncome + Self_employed + Married + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+cv1<- glm(Deny_Approve ~ ObligationsIncome +  poly(ExpensesIncome,3) + Self_employed + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+set.seed(123)
+mse.cv <- cv.glm(sampleCv, cv1, K = 10)$delta[]
+mse.cv
 
-cv1.10 <- cv.glm(sampleCv, cv1, K = 10)
-cv1.10
-summary(cv1)
+summary(cv1)$coef
 ```
 
-### Performance measures at threshold level
+## Model 2 with interaction variables
+```{r}
+cv2<- glm(Deny_Approve ~ I(ObligationsIncome*ExpensesIncome)+ ObligationsIncome + Race + ExpensesIncome + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+set.seed(123)
+mse.cv <- cv.glm(sampleCv, cv2, K = 10)$delta[]
+mse.cv
 
+summary(cv2)$coef
+```
+
+## Model 3 with polynomial transformation and interaction variables
+```{r}
+cv3 <- glm(Deny_Approve ~ poly(ObligationsIncome,2) + I(ObligationsIncome*ExpensesIncome) + Race + Self_employed + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+set.seed(123)
+mse.cv <- cv.glm(sampleCv, cv3, K = 10)$delta[]
+mse.cv
+
+summary(cv3)$coef
+```
+
+## Model 4 with polynomial transformations
+```{r}
+cv4 <- glm(Deny_Approve ~ poly(ObligationsIncome,3) + poly(ExpensesIncome,3) + Race + Self_employed + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+set.seed(123)
+mse.cv <- cv.glm(sampleCv, cv4, K = 10)$delta[]
+mse.cv
+
+summary(cv4)$coef
+```
+## Model 5 with log transformations
+```{r}
+sampleCv$logObligationsIncome =log(sampleCv$ObligationsIncome)
+sampleCv$logExpensesIncome =log(sampleCv$ExpensesIncome)
+
+sampleCv [sampleCv == -Inf] <- NA
+
+cv5<- glm(Deny_Approve ~ logObligationsIncome + logExpensesIncome + Race + Self_employed + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+
+mse.cv <- cv.glm(sampleCv, cv3, K = 10)$delta[]
+mse.cv
+summary(cv3)$coef
+```
+# Performance measure calculations with the average mse
+
+```{r}
+mse.cv<- NULL
+
+for (i in 1:5) {
+  model<- glm(Deny_Approve ~ poly(ObligationsIncome,i, raw=TRUE) + poly(ExpensesIncome,i, raw=TRUE) + I(ObligationsIncome*Race) + Race + Self_employed + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+set.seed(123)
+mse.cv[i] <- cv.glm(sampleCv, model, K = 10)$delta[1]
+ 
+}
+mse.cv
+```
+```{r}
+mse.cv<- matrix(1:25, 5, 5)
+
+for (i in 1:5) {
+  for(j in 1:5){
+  model<- glm(Deny_Approve ~ poly(ObligationsIncome,i, raw=TRUE) + poly(ExpensesIncome,j, raw=TRUE) + Race + Self_employed + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+set.seed(123)
+mse.cv[i] <- cv.glm(sampleCv, model, K = 10)$delta[1]
+} 
+}
+mse.cv
+```
+```{r}
+min = which(mse.cv == min(mse.cv), arr.ind=TRUE)
+min
+```
+The min average mse occurs when i= 1,2,3 and when j= 1. Therefore, the superior model include polynomial transformation on the variables obligations over income.
+
+
+## Threshold and other Performance measures at threshold level
+### Model 1
 ```{r}
 prob.cv <- predict(cv1, dataValidate.cv, type = 'response')
 my_roc.cv1 <- roc(dataValidate.cv$Deny_Approve ~ prob.cv)
 threshold.cv1 <-coords(my_roc.cv1, "best", ret = "threshold")
 
 threshold.cv1 = as.numeric(threshold.cv1)
+threshold.cv1
 ```
 
 ```{r}
@@ -401,17 +470,9 @@ logit.perf.cv1 <- table(dataValidate.cv$Deny_Approve, logit.pred.cv1, dnn = c("A
 
 logit.perf.cv1
 ```
+In this model, the threshold that maximizes the sensitivity and specificity is  0.8348627 and the prediction is not efficient.
 
-## Model 2 with interaction variables(self-employed and obligation overincome)
-```{r}
-cv2<- glm(Deny_Approve ~ I(ObligationsIncome*Self_employed) + Race + ExpensesIncome + Married + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
-set.seed(123)
-cv2.10 <- cv.glm(sampleCv, cv2, K = 10)
-cv2.10
-summary(cv2)
-```
-
-### Performance measures at threshold level
+### Model 2
 
 ```{r}
 prob.cv <- predict(cv2, dataValidate.cv, type = 'response')
@@ -419,72 +480,65 @@ my_roc.cv2 <- roc(dataValidate.cv$Deny_Approve ~ prob.cv)
 threshold.cv2 <-coords(my_roc.cv2, "best", ret = "threshold")
 
 threshold.cv2 = as.numeric(threshold.cv2)
+threshold.cv2
 ```
-
 
 ```{r}
 
-logit.pred.cv2 <- factor(prob.cv > 0.5, levels = c(FALSE,TRUE),abels = c("Approve","Deny"))
+logit.pred.cv2 <- factor(prob.cv > threshold.cv2, levels = c(FALSE,TRUE),labels = c("Approve","Deny"))
 logit.perf.cv2 <- table(dataValidate.cv$Deny_Approve, logit.pred.cv1, dnn = c("Actual","Predicted"))
 
 logit.perf.cv2
 ```
-## Model 3 with log transformations
-```{r}
-sampleCv$logObligationsIncome =log(sampleCv$ObligationsIncome)
-sampleCv$logExpensesIncome =log(sampleCv$ExpensesIncome)
+In this model, the threshold that maximizes the sensitivity and specificity is 0.8683657 and the prediction has not changed.
 
-sampleCv [sampleCv == -Inf] <- NA
-
-cv3<- glm(Deny_Approve ~ logObligationsIncome + logExpensesIncome + Race + Self_employed + Married + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
-
-cv3.10 <- cv.glm(sampleCv, cv3, K = 10)
-cv3.10
-summary(cv3)
-```
-
-## Performance measures at threshold level
+## Model 3
 ```{r}
 prob.cv <- predict(cv3, dataValidate.cv, type = 'response')
 my_roc.cv3 <- roc(dataValidate.cv$Deny_Approve ~ prob.cv)
 threshold.cv3 <-coords(my_roc.cv3, "best", ret = "threshold")
 
-threshold.cv3 = as.numeric(threshold.cv)
+threshold.cv3 = as.numeric(threshold.cv3)
+threshold.cv3
 ```
 
 ```{r}
 prob.cv <- predict(cv3, dataValidate.cv, type = 'response')
-logit.pred.cv3 <- factor(prob.cv > 0.5, levels = c(FALSE,TRUE),
+logit.pred.cv3 <- factor(prob.cv > threshold.cv3, levels = c(FALSE,TRUE),
                      labels = c("Approve","Deny"))
 
 logit.perf.cv3 <- table(dataValidate.cv$Deny_Approve, logit.pred.cv3, dnn = c("Actual","Predicted"))
 
 logit.perf.cv3
 ```
+In this model, the threshold that maximizes the sensitivity and specificity is 0.8651518 and the prediction is worst than the previous ones.
 
-## Model 4 with polynomial transformation (quadratic)
+# Model 4
 ```{r}
-cv4 <- glm(Deny_Approve ~ poly(ObligationsIncome, 2, raw = TRUE) + poly(ExpensesIncome, 2, raw = TRUE) + Race + Self_employed + Married + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+prob.cv <- predict(cv4, dataValidate.cv, type = 'response')
+my_roc.cv4 <- roc(dataValidate.cv$Deny_Approve ~ prob.cv)
+threshold.cv4 <-coords(my_roc.cv4, "best", ret = "threshold")
 
-cv4.10 <- cv.glm(sampleCv, cv3, K = 10)
-cv4.10
-summary(cv4)
+threshold.cv4 = as.numeric(threshold.cv4)
+threshold.cv4
 ```
+
 
 ```{r}
 prob.cv <- predict(cv4, dataValidate.cv, type = 'response')
-logit.pred.cv4 <- factor(prob.cv > 0.5, levels = c(FALSE,TRUE), labels = c("Approve","Deny"))
+logit.pred.cv4 <- factor(prob.cv > threshold.cv4, levels = c(FALSE,TRUE), labels = c("Approve","Deny"))
 
 logit.perf.cv4 <- table(dataValidate.cv$Deny_Approve, logit.pred.cv4, dnn = c("Actual","Predicted"))
 
 logit.perf.cv4
 ```
+In this model, the threshold that maximizes the sensitivity and specificity is 0.8513221 and the prediction is still not efficient.
 
-#Classification methods
+# Classification methods
 
-##Decision Trees
+## Decision Trees
 
-###Classical Decision Trees
+### Classical Decision Trees
 ```{r}
 set.seed(1234)
 
@@ -492,37 +546,51 @@ dtree <- rpart(Deny_Approve  ~ ., data = dataTrain, method = 'class' )
 prp(dtree, type = 2, extra = 104, fallen.leaves = T)
 
 ```
+#### Prediction and Performance: Pruned tree
 
-####Prediction and Performance: Classical Decision Trees
 ```{r}
-dtree.pred <- predict(dtree, dataTrain, type = "class")
-dtree.perf <- table(dataTrain$Deny_Approve, dtree.pred, dnn = c("Actual","Predicted"))
+dtree.pred <- predict(dtree, dataValidate,type = "class")
+
+dtree.perf <- table(dataValidate$Deny_Approve, dtree.pred, dnn = c("Actual","Predicted"))
+
 dtree.perf
 ```
-#Explanation.........
 
+### Pruned tree
 
+```{r}
+dtree.pruned <- prune(dtree,cp = 0.018)
 
-###Conditional Trees
+prp(dtree.pruned, type = 2, extra = 104,fallen.leaves = T)
+```
+
+##### Prediction and Performance: Pruned tree
+
+```{r}
+dtree.pruned.pred <- predict(dtree.pruned, dataValidate,type = "class")
+
+dtree.pruned.perf <- table(dataValidate$Deny_Approve, dtree.pruned.pred, dnn = c("Actual","Predicted"))
+
+dtree.pruned.perf
+```
+
+### Conditional Trees
+
 ```{r}
 fit.ctree <- ctree(Deny_Approve ~., data = dataTrain)
 
 plot(fit.ctree)
 ``` 
-#####Prediction and Performance: Conditional trees
+
+##### Prediction: Conditional trees
+
 ```{r}
 ctree.pred <- predict(fit.ctree, dataTrain, type = 'response')
 ctree.perf <- table(dataTrain$Deny_Approve, ctree.pred, dnn = c("Actual","Predicted"))
 ctree.perf
-
-performance(dtree.perf)
-
-performance(ctree.perf)
 ```
-#Explanation.........
 
-
-##Random Forests
+### Random Forests
 
 ```{r}
 set.seed(1234)
@@ -532,7 +600,7 @@ fit.forest <- randomForest(Deny_Approve ~., data = dataTrain, na.action=na.rough
 fit.forest
 ```
 
-###Prediction and Performance: Random Forests
+### Prediction: Random Forests
 
 ```{r}
 forest.pred <- predict(fit.forest, dataValidate)
@@ -546,11 +614,9 @@ A summary of the variable importance
 ```{r}
 importance(fit.forest,type = 2)
 ```
-#Explanation.........
 
 
-
-##Support Vector Machines
+### Support Vector Machines
 ```{r}
 set.seed(1234)
 
@@ -559,65 +625,86 @@ fit.svm <- svm(Deny_Approve ~., data = dataTrain)
 fit.svm
 ```       
 
-###Prediction and Performance: Support Vector Machines
+### Prediction: Support Vector Machines
 ```{r}
 svm.pred <- predict(fit.svm, na.omit(dataValidate))
 svm.perf <- table(na.omit(dataValidate)$Deny_Approve, svm.pred, dnn = c("Actual","Predicted"))
-
-performance(svm.perf)
+svm.perf
 ```
-#Explanation.........
 
 
 
 #                                            Part E: Superior Logistic Regression Model
-                                            
-#Identification superior logistic regression model  
+
+# Identification superior logistic regression model  
+The superior logistic regression model found by creating a loop function that will estimate multiple models and store the average cross validation test mse in a vector. Then, we have identify from a matrix the combination with the minimum average.
+
+For classification purposes, the Superior Logistic Regression Model is the following:
+```{r}
+Superiormodel<- glm(Deny_Approve ~ poly(ObligationsIncome,3) + poly(ExpensesIncome,1) + Race + Self_employed + Unmarried + Separated + Education, data = sampleCv, family = "binomial")
+
+
+summary(Superiormodel)
+```
+For this model, there is perfect multicollinearity where two independent variables (self-employed and Separated marital status) have an exact linear relationship between them. On the other hand, only obligations over Income to the first power is tested significant at 95% as well as race, unmarried marital status and education.
+
+The result of the performance of the different regression models in part D
 ```{r}
 performance(logit.perf.cv1)
 performance(logit.perf.cv2)
 performance(logit.perf.cv3)
 performance(logit.perf.cv4)
+```
+Results of the performance of the classification methods
 
+```{r}
+performance(dtree.perf)
+performance(ctree.perf)
+performance(forest.perf)
 performance(svm.perf)
+performance(dtree.pruned.perf)
 ```
 
-For classification purposes, the Superior Logistic Regression Model is the.....  
+We can see that Random Forests provide the best predictions with accuracy at 88.28%
 
-#Graph the ROC, calculate the AUC, threhold
+# Graph the ROC, calculate the AUC, threhold
+
 ```{r}
-prob.cv <- predict(cv2, dataValidate.cv, type = 'response')
-my_roc.cv2 <- roc(dataValidate.cv$Deny_Approve ~ prob,  plot = TRUE, print.auc=TRUE)
-threshold.cv2 <-coords(my_roc.cv2, "best", ret = "threshold")
+prob <- predict(Superiormodel, dataValidate.cv, type = 'response')
+my_roc.model <- roc(dataValidate.cv$Deny_Approve ~ prob,  plot = TRUE, print.auc=TRUE)
+threshold.model<-coords(my_roc.cv2, "best", ret = "threshold")
 
-threshold.cv2 = as.numeric(threshold.cv2)
-
+threshold.model = as.numeric(threshold.model)
+threshold.model
 
 ```
 
-#The confusion matrix at the threshold level associated with the minimum average test misclassification rate
+# The confusion matrix at the threshold level associated with the minimum average test misclassification rate
+
+## Confusion matrix
 ```{r}
-logit.pred.cv2 <- factor(prob.cv > 0.5, levels = c(FALSE,TRUE),
-                     labels = c("Approve","Deny"))
+logit.pred.model <- factor(prob.cv > threshold.model, levels = c(FALSE,TRUE),
+                     labels = c("Deny","Approve"))
 
-logit.perf.cv2 <- table(dataValidate.cv$Deny_Approve, logit.pred.cv1, dnn = c("Actual","Predicted"))
+logit.perf.model <- table(dataValidate.cv$Deny_Approve, logit.pred.model, dnn = c("Actual","Predicted"))
 
-logit.perf.cv2
-
+logit.perf.model
 ```
+With 0 meaning deny and 1, approved, the superior model is generating nice predictions the odds of applicants being approved.
 
+# Performance measures
 
-
-#Performance measures
 ```{r}
-performance(logit.perf.cv3)
+performance(logit.perf.model)
 ```
+This model is accurate at 76%
 
-#Comparing superior logistic regression model with Part C logistic regression model
+# Comparing superior logistic regression model with Part C logistic regression model
+
+Compared to the logistic regression model Part C, this model present multicollinearity and slightly less variables tested significant. Also the ROC curve has a curve more toward the top and a slight reduced area under of curve of 0.593. Nonetheless, this new model provide better prediction with 76% accuracy compared to the logistic regression model Part C with only 30.51%.                                                 
                                                          
-                                                         
-                                                   Conclusion
+#                                                 Part F: Conclusion
 
-The goal of this project is to builda mortgage application approval/denial classifier where the probability that an applicant will be approved or denied is a function observable......     
-                                                          
+The goal of this project is to build a mortgage application approval/denial classifier where the probability that an applicant will be approved or denied is a function observable. Through the different regressions and classifications methods, we observed that there are many variables that are tested significant at 95% level and that some of them have a higher weight in the mortgage approval process. According to the different decision trees, obligations over income is the variable that is the first criterion considered and that heavily affect the decision. if the ratio is less 50, applicants have more chance of being approved. However, if the ratio is over 50, the next criterion to achieve is an expenses over income ratio less than 26 according the classical decision tree and after the criterion that comes next is race. On the other hand, according to the conditional tree, race is the second top criterion in the mortgage approval process. The last variables by importance ranking are self-employment and marital status. Despite the divergence in rank, they all provide predictions with accuracy at approximately 88%. Our superior regression model also tells us with 76% how the changes in the different variables affect the probability of being approved. In conclusion, we can deduct that race is not the first criteria influence the decision. Rather the two debt ratios are the main factors that determine people's approval chances. Other factors such discrimination in other areas of the society could be the reason that white applicants might have better access to education which leads to better job and income consequently better debt ratios. 
+
                                                           
